@@ -37,17 +37,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fetch current user
+  // Fetch current user safely
   const fetchMe = async () => {
     try {
       const res = await api.get("me/");
       setUser(res.data);
     } catch (err: any) {
       if (err.response?.status === 401) {
-        // Access token expired, try refresh
+        // Try refreshing token
         const refreshed = await refreshToken();
-        if (refreshed) await fetchMe(); // retry fetchMe
-        else setUser(null);
+        if (refreshed) {
+          await fetchMe(); // retry after refresh
+        } else {
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
@@ -55,6 +58,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   };
+
+  const initAuth = async () => {
+    setLoading(true);
+    const access = localStorage.getItem("access");
+
+    if (access) {
+      // Set the token first
+      setAccessToken(access);
+      // Try fetching user
+      await fetchMe();
+    } else {
+      // No access token, try refreshing
+      const refreshed = await refreshToken();
+      if (refreshed) await fetchMe();
+      else setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    initAuth();
+  }, []);
 
   // Login
   const login = async (username: string, password: string) => {
@@ -74,13 +98,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(null);
     setUser(null);
   };
-
-  // On mount
-  useEffect(() => {
-    const access = localStorage.getItem("access");
-    if (access) setAccessToken(access);
-    fetchMe();
-  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>

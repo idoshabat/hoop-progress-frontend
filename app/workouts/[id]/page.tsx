@@ -113,7 +113,7 @@ export default function WorkoutDetailsPage() {
             </div>
 
             {/* Sessions */}
-            <h2 className="text-2xl font-semibold mb-3">Sessions</h2>
+            <h2 className="text-2xl font-semibold mb-3">Sessions {workout.num_of_sessions}/{workout.target_sessions}    </h2>
             {workout.num_of_sessions < workout.target_sessions && (
                 <Link
                     href={`/workouts/${workout.id}/add-session`}
