@@ -4,21 +4,8 @@ import { useEffect, useState } from "react";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
 import Link from "next/link";
+import {Workout} from '@/app/types'
 
-interface Workout {
-    id: number;
-    name: string;
-    description?: string;
-    created_at: string;
-    target_attempts: number;
-    target_sessions: number;
-    total_makes: number;
-    goal_percentage: number;
-    total_attempts: number;
-    num_of_sessions: number;
-    average_percentage: number;
-    is_successful: boolean;
-}
 
 export default function WorkoutsPage() {
     const { user } = useAuth();

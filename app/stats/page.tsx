@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
+import { StatsOverview } from "@/app/types";
 import {
     ResponsiveContainer,
     LineChart,
@@ -17,30 +18,25 @@ import {
     Legend,
 } from "recharts";
 
-type ProgressPoint = {
-    date: string;
-    avg_success_rate: number;
-};
 
-type StatsOverview = {
-    total_workouts: number;
-    completed_workouts: number;
-    in_progress_workouts: number;
-    total_sessions: number;
-    overall_avg_success_rate: number;
-    best_workout_success_rate: number;
-    progress_over_time: ProgressPoint[];
-};
+
 
 export default function StatsPage() {
+    const { user, loading: authLoading } = useAuth();
+
     const [stats, setStats] = useState<StatsOverview | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const { user, loading: authLoading } = useAuth();
-
 
     useEffect(() => {
-    if (!authLoading && user) {
+        if (authLoading) return;
+
+        if (!user) {
+            setError("Not authenticated");
+            setLoading(false);
+            return;
+        }
+
         const fetchStats = async () => {
             try {
                 const res = await api.get("stats/overview/");
@@ -52,60 +48,62 @@ export default function StatsPage() {
                 setLoading(false);
             }
         };
-        fetchStats();
-    }
-}, [authLoading, user]);
 
-    useEffect(() => {
-        if (!authLoading && user) {
-            const fetchStats = async () => {
-                try {
-                    const res = await api.get("stats/overview/");
-                    setStats(res.data);
-                } catch (err) {
-                    console.error(err);
-                    setError("Failed to load stats");
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchStats();
-        }
+        fetchStats();
     }, [authLoading, user]);
 
     if (loading) return <p className="p-6">Loading stats...</p>;
     if (error || !stats) return <p className="p-6 text-red-500">{error}</p>;
 
-    const pieData = [
-        { name: "Completed", value: stats.completed_workouts },
+    /* ---------- PIE DATA ---------- */
+    const statusPieData = [
+        { name: "Successful", value: stats.successful_workouts },
+        { name: "Failed", value: stats.failed_workouts },
         { name: "In Progress", value: stats.in_progress_workouts },
     ];
+
+    const PIE_COLORS = ["#22c55e", "#ef4444", "#f97316"];
 
     return (
         <div className="max-w-6xl mx-auto p-6 space-y-10">
             <h1 className="text-3xl font-bold">Stats Overview 📊</h1>
 
-            {/* Stat Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {/* ---------- STAT CARDS ---------- */}
+            <div className="grid grid-cols-3 md:grid-cols-3 gap-4">
                 <StatCard title="Total Workouts" value={stats.total_workouts} />
-                <StatCard title="Completed Workouts" value={stats.completed_workouts} />
+                <StatCard title="Completed" value={stats.completed_workouts} />
                 <StatCard title="In Progress" value={stats.in_progress_workouts} />
+                <StatCard title="Successful" value={stats.successful_workouts} color="text-green-500" />
+                <StatCard title="Failed" value={stats.failed_workouts} color="text-red-500" />
                 <StatCard title="Total Sessions" value={stats.total_sessions} />
                 <StatCard
                     title="Overall Avg %"
-                    value={`${stats?.overall_avg_success_rate?.toFixed(1) ?? 0}%`}
+                    value={`${stats.overall_success_rate.toFixed(1)}%`}
+                />
+
+                <StatCard
+                    title="Best Workout"
+                    value={
+                        stats.best_workout_name
+                            ? `${stats.best_workout_name} (${stats.best_workout_success_rate.toFixed(1)}%)`
+                            : "—"
+                    }
                 />
                 <StatCard
-                    title="Best Workout %"
-                    value={`${stats.best_workout_success_rate.toFixed(1)}%`}
+                    title="Completed Success Rate"
+                    value={`${stats.completed_success_rate.toFixed(1)}%`}
                 />
+
+
             </div>
 
-            {/* Charts */}
+            {/* ---------- CHARTS ---------- */}
             <div className="grid md:grid-cols-2 gap-6">
                 {/* Progress Line Chart */}
                 <div className="border rounded p-4">
-                    <h2 className="text-xl font-semibold mb-4">Progress Over Time</h2>
+                    <h2 className="text-xl font-semibold mb-4">
+                        Progress Over Time
+                    </h2>
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={stats.progress_over_time}>
                             <CartesianGrid strokeDasharray="3 3" />
@@ -124,20 +122,26 @@ export default function StatsPage() {
                     </ResponsiveContainer>
                 </div>
 
-                {/* Completion Pie Chart */}
+                {/* Workout Outcome Pie Chart */}
                 <div className="border rounded p-4">
-                    <h2 className="text-xl font-semibold mb-4">Workout Status</h2>
+                    <h2 className="text-xl font-semibold mb-4">
+                        Workout Outcomes
+                    </h2>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                             <Pie
-                                data={pieData}
+                                data={statusPieData}
                                 dataKey="value"
                                 nameKey="name"
                                 outerRadius={100}
                                 label
                             >
-                                <Cell fill="#22c55e" />
-                                <Cell fill="#f97316" />
+                                {statusPieData.map((_, index) => (
+                                    <Cell
+                                        key={index}
+                                        fill={PIE_COLORS[index]}
+                                    />
+                                ))}
                             </Pie>
                             <Tooltip />
                             <Legend />
@@ -151,10 +155,18 @@ export default function StatsPage() {
 
 /* ---------- Reusable Card ---------- */
 
-function StatCard({ title, value }: { title: string; value: number | string }) {
+function StatCard({
+    title,
+    value,
+    color="text-grey-500"
+}: {
+    title: string;
+    value: number | string;
+    color?: string;
+}) {
     return (
         <div className="border rounded p-4 text-center shadow-sm">
-            <p className="text-gray-500 text-sm">{title}</p>
+            <p className={`${color} text-sm`}>{title}</p>
             <p className="text-2xl font-bold mt-1">{value}</p>
         </div>
     );
