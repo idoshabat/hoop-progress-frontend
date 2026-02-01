@@ -20,6 +20,7 @@ export type Session = {
     attempts: number;
     makes: number;
     success_rate: number;
+    workout: Workout;
 };
 
 type ProgressPoint = {

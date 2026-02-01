@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import api from "@/app/lib/axios";
-import { useAuth } from "@/app/Context/AuthContext";
 import { StatsOverview } from "@/app/types";
+import StatsSkeleton from "@/app/Components/StatsSkeleton";
 import {
     ResponsiveContainer,
     LineChart,
@@ -18,25 +18,12 @@ import {
     Legend,
 } from "recharts";
 
-
-
-
 export default function StatsPage() {
-    const { user, loading: authLoading } = useAuth();
-
     const [stats, setStats] = useState<StatsOverview | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     useEffect(() => {
-        if (authLoading) return;
-
-        if (!user) {
-            setError("Not authenticated");
-            setLoading(false);
-            return;
-        }
-
         const fetchStats = async () => {
             try {
                 const res = await api.get("stats/overview/");
@@ -50,9 +37,11 @@ export default function StatsPage() {
         };
 
         fetchStats();
-    }, [authLoading, user]);
+    }, []);
 
-    if (loading) return <p className="p-6">Loading stats...</p>;
+    if (loading){
+        return <StatsSkeleton />
+    }
     if (error || !stats) return <p className="p-6 text-red-500">{error}</p>;
 
     /* ---------- PIE DATA ---------- */
@@ -68,42 +57,22 @@ export default function StatsPage() {
         <div className="max-w-6xl mx-auto p-6 space-y-10">
             <h1 className="text-3xl font-bold">Stats Overview 📊</h1>
 
-            {/* ---------- STAT CARDS ---------- */}
+            {/* Stat Cards */}
             <div className="grid grid-cols-3 md:grid-cols-3 gap-4">
                 <StatCard title="Total Workouts" value={stats.total_workouts} />
                 <StatCard title="Completed" value={stats.completed_workouts} />
                 <StatCard title="In Progress" value={stats.in_progress_workouts} />
                 <StatCard title="Successful" value={stats.successful_workouts} color="text-green-500" />
                 <StatCard title="Failed" value={stats.failed_workouts} color="text-red-500" />
+                <StatCard title="Success Percentage" value={`${stats.completed_success_rate.toFixed(1)}%`} />
                 <StatCard title="Total Sessions" value={stats.total_sessions} />
-                <StatCard
-                    title="Overall Avg %"
-                    value={`${stats.overall_success_rate.toFixed(1)}%`}
-                />
-
-                <StatCard
-                    title="Best Workout"
-                    value={
-                        stats.best_workout_name
-                            ? `${stats.best_workout_name} (${stats.best_workout_success_rate.toFixed(1)}%)`
-                            : "—"
-                    }
-                />
-                <StatCard
-                    title="Completed Success Rate"
-                    value={`${stats.completed_success_rate.toFixed(1)}%`}
-                />
-
-
+                <StatCard title="Overall Avg %" value={`${stats.overall_success_rate.toFixed(1)}%`} />
             </div>
 
-            {/* ---------- CHARTS ---------- */}
+            {/* Charts */}
             <div className="grid md:grid-cols-2 gap-6">
-                {/* Progress Line Chart */}
                 <div className="border rounded p-4">
-                    <h2 className="text-xl font-semibold mb-4">
-                        Progress Over Time
-                    </h2>
+                    <h2 className="text-xl font-semibold mb-4">Progress Over Time</h2>
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={stats.progress_over_time}>
                             <CartesianGrid strokeDasharray="3 3" />
@@ -122,11 +91,8 @@ export default function StatsPage() {
                     </ResponsiveContainer>
                 </div>
 
-                {/* Workout Outcome Pie Chart */}
                 <div className="border rounded p-4">
-                    <h2 className="text-xl font-semibold mb-4">
-                        Workout Outcomes
-                    </h2>
+                    <h2 className="text-xl font-semibold mb-4">Workout Outcomes</h2>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                             <Pie
@@ -137,10 +103,7 @@ export default function StatsPage() {
                                 label
                             >
                                 {statusPieData.map((_, index) => (
-                                    <Cell
-                                        key={index}
-                                        fill={PIE_COLORS[index]}
-                                    />
+                                    <Cell key={index} fill={PIE_COLORS[index]} />
                                 ))}
                             </Pie>
                             <Tooltip />
@@ -154,11 +117,10 @@ export default function StatsPage() {
 }
 
 /* ---------- Reusable Card ---------- */
-
 function StatCard({
     title,
     value,
-    color="text-grey-500"
+    color = "text-grey-500"
 }: {
     title: string;
     value: number | string;
