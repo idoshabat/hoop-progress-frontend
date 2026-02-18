@@ -26,6 +26,9 @@ export default function Navbar() {
       <div className="flex gap-4 items-center">
         {user ? (
           <>
+            <Link href="/profile" className="hover:text-gray-300">
+              Profile
+            </Link>
             <Link href="/workouts" className="hover:text-gray-300">
               Workouts
             </Link>

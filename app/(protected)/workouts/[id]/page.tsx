@@ -187,6 +187,12 @@ export default function WorkoutDetailsPage() {
                 </div>
             </div>
 
+            {workout.is_completed && (
+                <div className="mb-4 p-4 rounded bg-gray-800 border border-blue-500 text-blue-400">
+                    🔒 This workout is completed and can no longer be modified.
+                </div>
+            )}
+
             {/* Sessions Progress */}
             <h2 className="text-2xl font-semibold mb-3">
                 Sessions {workout.num_of_sessions}/{workout.target_sessions}
@@ -246,7 +252,7 @@ export default function WorkoutDetailsPage() {
                                                 className="text-blue-600 hover:underline"
                                             >
                                                 Edit
-                                            </Link>                                         
+                                            </Link>
 
                                             <button
                                                 onClick={() => handleDeleteSession(session.id)}

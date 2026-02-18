@@ -1,3 +1,11 @@
+export interface PlayerProfile {
+    id: number;
+    position: "PG" | "SG" | "SF" | "PF" | "C";
+    height_cm?: number;
+}
+
+
+
 export interface Workout {
     id: number;
     name: string;
@@ -11,6 +19,7 @@ export interface Workout {
     num_of_sessions: number;
     average_percentage: number;
     is_successful: boolean;
+    is_completed: boolean;
     sessions: Session[];
 }
 
