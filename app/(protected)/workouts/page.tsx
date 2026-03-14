@@ -15,7 +15,6 @@ export default function WorkoutsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    console.log("Workouts page mounted", localStorage.getItem("access"));
     
     useEffect(() => {
         // Don't fetch workouts until auth is ready and user exists
