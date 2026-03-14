@@ -6,14 +6,21 @@ import Link from "next/link";
 import { Workout } from "@/app/types";
 import WorkoutsSkeleton from "@/app/Components/WorkoutSkeleton";
 import EmptyState from "@/app/Components/EmptyState";
+import { useAuth } from "@/app/Context/AuthContext";
 
 export default function WorkoutsPage() {
+    const { user, loading: authLoading } = useAuth(); // useAuth guard
     const [inProgress, setInProgress] = useState<Workout[]>([]);
     const [completed, setCompleted] = useState<Workout[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    console.log("Workouts page mounted", localStorage.getItem("access"));
+    
     useEffect(() => {
+        // Don't fetch workouts until auth is ready and user exists
+        if (authLoading || !user) return;
+
         const fetchWorkouts = async () => {
             try {
                 const [inProgressRes, completedRes] = await Promise.all([
@@ -32,9 +39,9 @@ export default function WorkoutsPage() {
         };
 
         fetchWorkouts();
-    }, []);
+    }, [authLoading, user]);
 
-    if (loading) {
+    if (authLoading || loading) {
         return <WorkoutsSkeleton />;
     }
 
@@ -54,7 +61,6 @@ export default function WorkoutsPage() {
             </div>
         );
     }
-
 
     const renderCompletedWorkout = (workout: Workout) => (
         <Link

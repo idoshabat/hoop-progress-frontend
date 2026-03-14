@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
   const isLoggedIn = req.cookies.get("refresh");
+  console.log('refresh' , isLoggedIn);
 
   if (!isLoggedIn && req.nextUrl.pathname.startsWith("/workouts")) {
     return NextResponse.redirect(new URL("/login", req.url));

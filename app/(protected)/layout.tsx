@@ -8,8 +8,10 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
+
   useEffect(() => {
     // If auth is done loading and there's no user, redirect to login
+    console.log('user:',user);
     if (!loading && !user) {
       router.push("/login");
     }
