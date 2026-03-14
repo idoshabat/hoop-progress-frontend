@@ -45,12 +45,15 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Link
-              href="/login"
-              className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Login
-            </Link>
+            <>
+              <Link href="/register" className="hover:text-gray-300">
+                Register
+              </Link>
+              <Link href="/login" className="hover:text-gray-300">
+                Login
+              </Link>
+            </>
+
           )}
         </div>
 
@@ -90,18 +93,17 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <>
+            <div className="flex flex-col gap-2 text-center">
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600 w-fit"
               >
                 Login
               </Link>
               <Link href="/register" onClick={() => setMenuOpen(false)}>
                 Register
               </Link>
-            </>
+            </div>
           )}
         </div>
       )}
