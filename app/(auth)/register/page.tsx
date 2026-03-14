@@ -18,7 +18,7 @@ export default function RegisterPage() {
     e.preventDefault();
 
     try {
-      await fetch("http://localhost:8000/api/register/", {
+      await fetch("https://hoopprogress.duckdns.org/api/register/", {
         method: "POST",
         credentials: "include",
         headers: {
