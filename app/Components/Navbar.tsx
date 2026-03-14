@@ -10,103 +10,162 @@ export default function Navbar() {
 
   if (loading) {
     return (
-      <nav className="bg-gray-900 text-white px-6 py-4 flex items-center justify-between">
-        <span>Loading...</span>
+      <nav className="bg-gray-900 text-white px-6 py-4 flex justify-between">
+        Loading...
       </nav>
     );
   }
 
   return (
-    <nav className="bg-gray-900 text-white px-6 py-4">
-      <div className="flex items-center justify-between">
+    <nav className="bg-gray-900/90 backdrop-blur-md text-white shadow-md sticky top-0 z-50">
+      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        
         {/* Logo */}
-        <Link href="/" className="text-xl font-bold">
+        <Link
+          href="/"
+          className="text-xl font-bold tracking-wide hover:text-orange-400 transition"
+        >
           🏀 HoopProgress
         </Link>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex gap-4 items-center">
+        <div className="hidden md:flex items-center gap-6 text-sm font-medium">
           {user ? (
             <>
-              <Link href="/profile" className="hover:text-gray-300">
+              <Link
+                href="/profile"
+                className="hover:text-orange-400 transition"
+              >
                 Profile
               </Link>
-              <Link href="/workouts" className="hover:text-gray-300">
+
+              <Link
+                href="/workouts"
+                className="hover:text-orange-400 transition"
+              >
                 Workouts
               </Link>
-              <Link href="/stats" className="hover:text-gray-300">
+
+              <Link
+                href="/stats"
+                className="hover:text-orange-400 transition"
+              >
                 Stats
               </Link>
+
               <button
                 onClick={logout}
-                className="bg-red-500 px-4 py-2 rounded hover:bg-red-600"
+                className="bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600 transition"
               >
                 Logout
               </button>
             </>
           ) : (
             <>
-              <Link href="/register" className="hover:text-gray-300">
-                Register
-              </Link>
-              <Link href="/login" className="hover:text-gray-300">
+              <Link
+                href="/login"
+                className="hover:text-orange-400 transition"
+              >
                 Login
               </Link>
-            </>
 
+              <Link
+                href="/register"
+                className="bg-orange-500 px-4 py-2 rounded-lg hover:bg-orange-600 transition"
+              >
+                Register
+              </Link>
+            </>
           )}
         </div>
 
         {/* Burger Button */}
         <button
-          className="md:hidden flex flex-col gap-1"
           onClick={() => setMenuOpen(!menuOpen)}
+          className="md:hidden flex flex-col justify-center items-center w-8 h-8 relative"
         >
-          <span className="w-6 h-0.5 bg-white"></span>
-          <span className="w-6 h-0.5 bg-white"></span>
-          <span className="w-6 h-0.5 bg-white"></span>
+          <span
+            className={`absolute h-0.5 w-6 bg-white transition-all duration-300 ${
+              menuOpen ? "rotate-45" : "-translate-y-2"
+            }`}
+          />
+          <span
+            className={`absolute h-0.5 w-6 bg-white transition-all duration-300 ${
+              menuOpen ? "opacity-0" : ""
+            }`}
+          />
+          <span
+            className={`absolute h-0.5 w-6 bg-white transition-all duration-300 ${
+              menuOpen ? "-rotate-45" : "translate-y-2"
+            }`}
+          />
         </button>
       </div>
 
       {/* Mobile Menu */}
-      {menuOpen && (
-        <div className="md:hidden mt-4 flex flex-col gap-3">
+      <div
+        className={`md:hidden overflow-hidden transition-all duration-300 ${
+          menuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="px-6 pb-6 flex flex-col gap-4 text-center font-medium bg-gray-900">
           {user ? (
             <>
-              <Link href="/profile" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/profile"
+                onClick={() => setMenuOpen(false)}
+                className="hover:text-orange-400 transition"
+              >
                 Profile
               </Link>
-              <Link href="/workouts" onClick={() => setMenuOpen(false)}>
+
+              <Link
+                href="/workouts"
+                onClick={() => setMenuOpen(false)}
+                className="hover:text-orange-400 transition"
+              >
                 Workouts
               </Link>
-              <Link href="/stats" onClick={() => setMenuOpen(false)}>
+
+              <Link
+                href="/stats"
+                onClick={() => setMenuOpen(false)}
+                className="hover:text-orange-400 transition"
+              >
                 Stats
               </Link>
+
               <button
                 onClick={() => {
                   logout();
                   setMenuOpen(false);
                 }}
-                className="bg-red-500 px-4 py-2 rounded hover:bg-red-600 text-left"
+                className="bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600 transition"
               >
                 Logout
               </button>
             </>
           ) : (
-            <div className="flex flex-col gap-2 text-center">
+            <>
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
+                className="hover:text-orange-400 transition"
               >
                 Login
               </Link>
-              <Link href="/register" onClick={() => setMenuOpen(false)}>
+
+              <Link
+                href="/register"
+                onClick={() => setMenuOpen(false)}
+                className="bg-orange-500 px-4 py-2 rounded-lg hover:bg-orange-600 transition"
+              >
                 Register
               </Link>
-            </div>
+            </>
           )}
         </div>
-      )}
+      </div>
     </nav>
   );
 }
