@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://13.62.225.140/api/",
+  baseURL: "https://hoopprogress.duckdns.org/api/",
   withCredentials: true,
 });
 
