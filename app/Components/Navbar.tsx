@@ -17,19 +17,19 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-gray-900/90 backdrop-blur-md text-white shadow-md sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <nav className="bg-gray-400 backdrop-blur-md text-black shadow-md sticky top-0 z-50">
+      <div className="w-full mx-auto px-6 py-4 flex items-center justify-between">
         
         {/* Logo */}
         <Link
           href="/"
-          className="text-xl font-bold tracking-wide hover:text-orange-400 transition"
+          className="text-xl font-bold tracking-wide hover:text-orange-400 transition "
         >
           🏀 HoopProgress
         </Link>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <div className="hidden md:flex items-center gap-6 text-lg font-medium">
           {user ? (
             <>
               <Link
@@ -55,7 +55,7 @@ export default function Navbar() {
 
               <button
                 onClick={logout}
-                className="bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600 transition"
+                className="bg-transparent text-red-500 px-4 py-2 rounded-lg cursor-pointer hover:text-red-600 transition"
               >
                 Logout
               </button>
@@ -140,7 +140,7 @@ export default function Navbar() {
                   logout();
                   setMenuOpen(false);
                 }}
-                className="bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600 transition"
+                className="bg-transparent text-red-500 cursor-pointer px-4 py-2 rounded-lg hover:text-red-600 transition"
               >
                 Logout
               </button>

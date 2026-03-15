@@ -84,7 +84,7 @@ export default function CreateWorkoutPage() {
                 />
                 <button
                     type="submit"
-                    className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                    className="bg-amber-500 text-black p-2 rounded hover:bg-amber-600"
                 >
                     Create
                 </button>

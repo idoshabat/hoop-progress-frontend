@@ -101,7 +101,7 @@ export default function ProfilePage() {
 
                 <button
                     onClick={handleUpdate}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    className="bg-amber-500 text-black px-4 py-2 rounded hover:bg-amber-600"
                 >
                     Save Changes
                 </button>

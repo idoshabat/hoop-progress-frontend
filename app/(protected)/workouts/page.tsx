@@ -129,7 +129,7 @@ export default function WorkoutsPage() {
                 <h1 className="text-2xl font-bold">My Workouts</h1>
                 <Link
                     href="/workouts/create"
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    className="bg-amber-500 text-black px-4 py-2 rounded hover:bg-amber-600"
                 >
                     + Add Workout
                 </Link>
