@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import api, { setAccessToken } from "@/app/lib/axios";
-
-type User = { id: number; username: string };
+import type { PlayerProfile } from "@/app/types";
+import { User } from "@/app/types";
 
 type AuthContextType = {
   user: User | null;

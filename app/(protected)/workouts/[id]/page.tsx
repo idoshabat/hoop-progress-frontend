@@ -97,11 +97,21 @@ export default function WorkoutDetailsPage() {
                     }
                     : prev
             );
-        } catch (err: any) {
-            alert(
-                err.response?.data?.detail ??
-                "Failed to delete session"
-            );
+        } catch (err: unknown) {
+            const detail =
+                typeof err === "object" &&
+                err !== null &&
+                "response" in err &&
+                typeof err.response === "object" &&
+                err.response !== null &&
+                "data" in err.response &&
+                typeof err.response.data === "object" &&
+                err.response.data !== null &&
+                "detail" in err.response.data &&
+                typeof err.response.data.detail === "string"
+                    ? err.response.data.detail
+                    : "Failed to delete session";
+            alert(detail);
         }
     };
 
@@ -116,7 +126,7 @@ export default function WorkoutDetailsPage() {
                 <div className="flex gap-4">
                     <button
                         onClick={() => router.push("/workouts")}
-                        className="text-blue-500 hover:underline"
+                        className="text-amber-300 hover:text-amber-200 hover:underline"
                     >
                         ← Back
                     </button>
@@ -188,7 +198,7 @@ export default function WorkoutDetailsPage() {
             </div>
 
             {workout.is_completed && (
-                <div className="mb-4 p-4 rounded bg-gray-800 border border-blue-500 text-blue-400">
+                <div className="mb-4 rounded border border-amber-500/40 bg-zinc-900 p-4 text-amber-300">
                     🔒 This workout is completed and can no longer be modified.
                 </div>
             )}
@@ -249,7 +259,7 @@ export default function WorkoutDetailsPage() {
                                         <>
                                             <Link
                                                 href={`/workouts/${workout.id}/edit-session/${session.id}/`}
-                                                className="text-blue-600 hover:underline"
+                                                className="text-amber-300 hover:text-amber-200 hover:underline"
                                             >
                                                 Edit
                                             </Link>

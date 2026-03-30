@@ -67,7 +67,7 @@ export default function EditSessionPage() {
                     onClick={() =>
                         router.push(`/workouts/${session.workout.id}`)
                     }
-                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                    className="rounded bg-amber-500 px-4 py-2 text-zinc-950 hover:bg-amber-400"
                 >
                     Back to Workout
                 </button>
@@ -86,11 +86,21 @@ export default function EditSessionPage() {
             });
 
             router.push(`/workouts/${session.workout}`);
-        } catch (err: any) {
-            alert(
-                err.response?.data?.detail ??
-                    "Failed to update session"
-            );
+        } catch (err: unknown) {
+            const detail =
+                typeof err === "object" &&
+                err !== null &&
+                "response" in err &&
+                typeof err.response === "object" &&
+                err.response !== null &&
+                "data" in err.response &&
+                typeof err.response.data === "object" &&
+                err.response.data !== null &&
+                "detail" in err.response.data &&
+                typeof err.response.data.detail === "string"
+                    ? err.response.data.detail
+                    : "Failed to update session";
+            alert(detail);
         }
     };
 

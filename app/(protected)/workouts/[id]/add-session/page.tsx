@@ -35,7 +35,7 @@ export default function AddSessionPage() {
       });
 
       router.push(`/workouts/${workoutId}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError("Failed to add session");
     } finally {
@@ -44,7 +44,7 @@ export default function AddSessionPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow">
+    <div className="mx-auto mt-20 max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg shadow-black/30">
       <h1 className="text-2xl font-semibold mb-4">Add Session</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -52,7 +52,7 @@ export default function AddSessionPage() {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="border p-2 rounded"
+          className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
           required
         />
 
@@ -61,7 +61,7 @@ export default function AddSessionPage() {
           placeholder={"Attempts"} 
           value={attempts}
           onChange={(e) => setAttempts(e.target.value)}
-          className="border p-2 rounded"
+          className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
           required
           disabled={true}
         /> */}
@@ -78,7 +78,7 @@ export default function AddSessionPage() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          className="rounded bg-amber-500 p-2 text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
         >
           {loading ? "Saving..." : "Add Session"}
         </button>

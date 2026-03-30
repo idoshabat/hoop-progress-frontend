@@ -17,21 +17,28 @@ export default function LoginPage() {
     try {
       await login(username, password);
       router.push("/");
-    } catch (err: any) {
-      setError(err.message || "Login failed");
+    } catch (err: unknown) {
+      const message =
+        typeof err === "object" &&
+        err !== null &&
+        "message" in err &&
+        typeof err.message === "string"
+          ? err.message
+          : "Login failed";
+      setError(message);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow">
-      <h1 className="text-2xl mb-4">Login</h1>
+    <div className="mx-auto mt-20 max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg shadow-black/30">
+      <h1 className="mb-4 text-2xl font-semibold text-stone-100">Login</h1>
       <form onSubmit={handleLogin} className="flex flex-col gap-2">
         <input
           type="text"
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="border p-2 rounded"
+          className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
           required
         />
         <input
@@ -39,17 +46,17 @@ export default function LoginPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border p-2 rounded"
+          className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
           required
         />
         <button
           type="submit"
-          className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+          className="rounded bg-amber-500 p-2 font-medium text-zinc-950 hover:bg-amber-400"
         >
           Login
         </button>
       </form>
-      {error && <p className="text-red-500 mt-2">{error}</p>}
+      {error && <p className="mt-2 text-red-400">{error}</p>}
     </div>
   );
 }

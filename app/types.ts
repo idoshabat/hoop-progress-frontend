@@ -1,9 +1,42 @@
+export type User = {
+  id: number;
+  username: string;
+  role?: "PLAYER" | "COACH";
+  players?: PlayerProfile[]; // for coaches, list of their players
+};
+
 export interface PlayerProfile {
     id: number;
+    username:string;
     position: "PG" | "SG" | "SF" | "PF" | "C";
     height_cm?: number;
+    date_of_birth?: string | null;
+    coaches : CoachProfile[];
 }
 
+export interface CoachProfile {
+    id: number;
+    username:string;
+    date_of_birth?: string | null;
+    players: PlayerProfile[];
+}
+
+export interface ConnectionRequestUser {
+    id: number;
+    username: string;
+    role?: "PLAYER" | "COACH";
+}
+
+export interface ConnectionRequest {
+    id: number;
+    sender: ConnectionRequestUser;
+    receiver: ConnectionRequestUser;
+    sender_username: string; // for easier access in frontend
+    receiver_username: string; // for easier access in frontend
+    status: "pending" | "accepted" | "rejected";
+    created_at: string;
+    responded_at?: string | null;
+}
 
 
 export interface Workout {

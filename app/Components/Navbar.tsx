@@ -10,20 +10,20 @@ export default function Navbar() {
 
   if (loading) {
     return (
-      <nav className="bg-gray-900 text-white px-6 py-4 flex justify-between">
+      <nav className="flex justify-between border-b border-zinc-800 bg-zinc-950 px-6 py-4 text-stone-100">
         Loading...
       </nav>
     );
   }
 
   return (
-    <nav className="bg-gray-400 backdrop-blur-md text-black shadow-md sticky top-0 z-50">
+    <nav className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/90 text-stone-100 shadow-md backdrop-blur-md">
       <div className="w-full mx-auto px-6 py-4 flex items-center justify-between">
-        
+
         {/* Logo */}
         <Link
           href="/"
-          className="text-xl font-bold tracking-wide hover:text-orange-400 transition "
+          className="text-xl font-bold tracking-wide text-amber-400 hover:text-amber-300 transition "
         >
           🏀 HoopProgress
         </Link>
@@ -31,35 +31,64 @@ export default function Navbar() {
         {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-6 text-lg font-medium">
           {user ? (
-            <>
-              <Link
-                href="/profile"
-                className="hover:text-orange-400 transition"
-              >
-                Profile
-              </Link>
+            user.role === "PLAYER" ? (
+              <>
+                <Link
+                  href="/player-profile"
+                  className="hover:text-orange-400 transition"
+                >
+                  Profile
+                </Link>
 
-              <Link
-                href="/workouts"
-                className="hover:text-orange-400 transition"
-              >
-                Workouts
-              </Link>
+                <Link
+                  href="/workouts"
+                  className="hover:text-orange-400 transition"
+                >
+                  Workouts
+                </Link>
+                <Link
+                  href="/stats"
+                  className="hover:text-orange-400 transition"
+                >
+                  Stats
+                </Link>
+                <Link
+                  href="/my-coaches"
+                  className="hover:text-orange-400 transition"
+                >
+                  My Coaches
+                </Link>
+                <button
+                  onClick={logout}
+                  className="bg-transparent text-red-500 cursor-pointer px-4 py-2 rounded-lg hover:text-red-600 transition"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/coach-profile"
+                  className="hover:text-orange-400 transition"
+                >
+                  Profile
+                </Link>
 
-              <Link
-                href="/stats"
-                className="hover:text-orange-400 transition"
-              >
-                Stats
-              </Link>
+                <Link
+                  href="/coach-dashboard"
+                  className="hover:text-orange-400 transition"
+                >
+                  Coach Dashboard
+                </Link>
 
-              <button
-                onClick={logout}
-                className="bg-transparent text-red-500 px-4 py-2 rounded-lg cursor-pointer hover:text-red-600 transition"
-              >
-                Logout
-              </button>
-            </>
+                <button
+                  onClick={logout}
+                  className="bg-transparent text-red-500 cursor-pointer px-4 py-2 rounded-lg hover:text-red-600 transition"
+                >
+                  Logout
+                </button>
+              </>
+            )
           ) : (
             <>
               <Link
@@ -85,30 +114,26 @@ export default function Navbar() {
           className="md:hidden flex flex-col justify-center items-center w-8 h-8 relative"
         >
           <span
-            className={`absolute h-0.5 w-6 bg-white transition-all duration-300 ${
-              menuOpen ? "rotate-45" : "-translate-y-2"
-            }`}
+            className={`absolute h-0.5 w-6 bg-stone-100 transition-all duration-300 ${menuOpen ? "rotate-45" : "-translate-y-2"
+              }`}
           />
           <span
-            className={`absolute h-0.5 w-6 bg-white transition-all duration-300 ${
-              menuOpen ? "opacity-0" : ""
-            }`}
+            className={`absolute h-0.5 w-6 bg-stone-100 transition-all duration-300 ${menuOpen ? "opacity-0" : ""
+              }`}
           />
           <span
-            className={`absolute h-0.5 w-6 bg-white transition-all duration-300 ${
-              menuOpen ? "-rotate-45" : "translate-y-2"
-            }`}
+            className={`absolute h-0.5 w-6 bg-stone-100 transition-all duration-300 ${menuOpen ? "-rotate-45" : "translate-y-2"
+              }`}
           />
         </button>
       </div>
 
       {/* Mobile Menu */}
       <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ${
-          menuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-        }`}
+        className={`md:hidden overflow-hidden transition-all duration-300 ${menuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          }`}
       >
-        <div className="px-6 pb-6 flex flex-col gap-4 text-center font-medium bg-gray-900">
+        <div className="bg-zinc-950 px-6 pb-6 flex flex-col gap-4 text-center font-medium text-stone-100">
           {user ? (
             <>
               <Link

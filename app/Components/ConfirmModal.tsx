@@ -20,13 +20,13 @@ export default function ConfirmModal({
     loading = false,
 }: ConfirmModalProps) {
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
-                <h2 className="text-xl font-bold text-gray-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+            <div className="w-full max-w-md space-y-4 rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-lg">
+                <h2 className="text-xl font-bold text-stone-100">
                     {title}
                 </h2>
 
-                <p className="text-gray-600">
+                <p className="text-stone-400">
                     {message}
                 </p>
 
@@ -34,7 +34,7 @@ export default function ConfirmModal({
                     <button
                         onClick={onCancel}
                         disabled={loading}
-                        className="px-4 py-2 rounded border hover:bg-gray-100"
+                        className="rounded border border-zinc-600 px-4 py-2 text-stone-200 hover:bg-zinc-800"
                     >
                         {cancelText}
                     </button>

@@ -100,7 +100,7 @@ export default function EditWorkoutPage() {
                 </p>
                 <button
                     onClick={() => router.push(`/workouts/${workout.id}`)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                    className="rounded bg-amber-500 px-4 py-2 text-zinc-950 hover:bg-amber-400"
                 >
                     Back to Workout
                 </button>
@@ -196,7 +196,7 @@ export default function EditWorkoutPage() {
                     <button
                         type="submit"
                         disabled={saving}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                        className="rounded bg-amber-500 px-4 py-2 text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
                     >
                         {saving ? "Saving..." : "Save Changes"}
                     </button>

@@ -9,7 +9,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="min-h-screen bg-zinc-950 text-stone-100">
         <AuthProvider>
           <Navbar />
           {children}
