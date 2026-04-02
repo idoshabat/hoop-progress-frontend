@@ -4,8 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
-import { Session } from "@/app/types";
+import { Session, Workout } from "@/app/types";
 
+function hasFullWorkout(
+    workout: Session["workout"]
+): workout is Workout {
+    return typeof workout === "object" && workout !== null && "num_of_sessions" in workout;
+}
 
 
 export default function EditSessionPage() {
@@ -49,10 +54,13 @@ export default function EditSessionPage() {
         return <p className="p-6 text-red-500">{error}</p>;
     }
 
+    const workoutId =
+        typeof session.workout === "object" ? session.workout.id : session.workout;
+
     /* ---------- BUSINESS RULE GUARD ---------- */
-    const isWorkoutCompleted =
-        session.workout.num_of_sessions >=
-        session.workout.target_sessions;
+    const isWorkoutCompleted = hasFullWorkout(session.workout)
+        ? session.workout.num_of_sessions >= session.workout.target_sessions
+        : false;
 
     if (isWorkoutCompleted) {
         return (
@@ -65,7 +73,7 @@ export default function EditSessionPage() {
                 </p>
                 <button
                     onClick={() =>
-                        router.push(`/workouts/${session.workout.id}`)
+                        router.push(`/workouts/${workoutId}`)
                     }
                     className="rounded bg-amber-500 px-4 py-2 text-zinc-950 hover:bg-amber-400"
                 >
@@ -85,7 +93,7 @@ export default function EditSessionPage() {
                 attempts,
             });
 
-            router.push(`/workouts/${session.workout}`);
+            router.push(`/workouts/${workoutId}`);
         } catch (err: unknown) {
             const detail =
                 typeof err === "object" &&
@@ -157,9 +165,7 @@ export default function EditSessionPage() {
                     <button
                         type="button"
                         onClick={() =>
-                            router.push(
-                                `/workouts/${session.workout.id}`
-                            )
+                            router.push(`/workouts/${workoutId}`)
                         }
                         className="bg-gray-300 px-4 py-2 rounded"
                     >
