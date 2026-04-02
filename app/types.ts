@@ -62,7 +62,10 @@ export type Session = {
     attempts: number;
     makes: number;
     success_rate: number;
-    workout: Workout;
+    workout: number | Workout | { id: number; name?: string };
+    workout_name?: string;
+    workout_goal_percentage?: number;
+    player_username?: string;
 };
 
 type ProgressPoint = {

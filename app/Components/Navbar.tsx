@@ -53,6 +53,12 @@ export default function Navbar() {
                   Stats
                 </Link>
                 <Link
+                  href="/player-calendar"
+                  className="hover:text-orange-400 transition"
+                >
+                  Calendar
+                </Link>
+                <Link
                   href="/my-coaches"
                   className="hover:text-orange-400 transition"
                 >
@@ -79,6 +85,12 @@ export default function Navbar() {
                   className="hover:text-orange-400 transition"
                 >
                   Coach Dashboard
+                </Link>
+                <Link
+                  href="/coach-calendar"
+                  className="hover:text-orange-400 transition"
+                >
+                  Calendar
                 </Link>
 
                 <button
@@ -137,28 +149,62 @@ export default function Navbar() {
           {user ? (
             <>
               <Link
-                href="/profile"
+                href={user.role === "COACH" ? "/coach-profile" : "/player-profile"}
                 onClick={() => setMenuOpen(false)}
                 className="hover:text-orange-400 transition"
               >
                 Profile
               </Link>
 
-              <Link
-                href="/workouts"
-                onClick={() => setMenuOpen(false)}
-                className="hover:text-orange-400 transition"
-              >
-                Workouts
-              </Link>
-
-              <Link
-                href="/stats"
-                onClick={() => setMenuOpen(false)}
-                className="hover:text-orange-400 transition"
-              >
-                Stats
-              </Link>
+              {user.role === "COACH" ? (
+                <>
+                  <Link
+                    href="/coach-dashboard"
+                    onClick={() => setMenuOpen(false)}
+                    className="hover:text-orange-400 transition"
+                  >
+                    Coach Dashboard
+                  </Link>
+                  <Link
+                    href="/coach-calendar"
+                    onClick={() => setMenuOpen(false)}
+                    className="hover:text-orange-400 transition"
+                  >
+                    Calendar
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/workouts"
+                    onClick={() => setMenuOpen(false)}
+                    className="hover:text-orange-400 transition"
+                  >
+                    Workouts
+                  </Link>
+                  <Link
+                    href="/stats"
+                    onClick={() => setMenuOpen(false)}
+                    className="hover:text-orange-400 transition"
+                  >
+                    Stats
+                  </Link>
+                  <Link
+                    href="/player-calendar"
+                    onClick={() => setMenuOpen(false)}
+                    className="hover:text-orange-400 transition"
+                  >
+                    Calendar
+                  </Link>
+                  <Link
+                    href="/my-coaches"
+                    onClick={() => setMenuOpen(false)}
+                    className="hover:text-orange-400 transition"
+                  >
+                    My Coaches
+                  </Link>
+                </>
+              )}
 
               <button
                 onClick={() => {

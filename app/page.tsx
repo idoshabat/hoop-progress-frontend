@@ -37,6 +37,11 @@ const playerActions = [
     title: "Coach Hub",
     description: "View your coaches, their assigned workouts, and your current connections.",
   },
+  {
+    href: "/player-calendar",
+    title: "Session Calendar",
+    description: "Open a calendar view and review every session you logged on a specific date.",
+  },
 ];
 
 const coachActions = [
@@ -54,6 +59,11 @@ const coachActions = [
     href: "/coach-profile",
     title: "Coach Profile",
     description: "Keep your account details updated and ready for players to find.",
+  },
+  {
+    href: "/coach-calendar",
+    title: "Team Calendar",
+    description: "Review all player sessions by date and spot who hit the goal line.",
   },
 ];
 
