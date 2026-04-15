@@ -87,3 +87,16 @@ export type StatsOverview = {
     progress_over_time: ProgressPoint[];
 };
 
+export type WorkoutTemplate = {
+    id: number;
+    coach: number;
+    coach_username: string;
+    name: string;
+    description?: string | null;
+    target_attempts: number;
+    target_sessions: number;
+    goal_percentage: number;
+    created_at: string;
+    updated_at: string;
+};
+

@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
+import { PlayerProfile, WorkoutTemplate } from "@/app/types";
+import SelectTemplateModal from "@/app/Components/SelectTemplateModal";
+import {
+  fetchWorkoutTemplates,
+  createWorkoutFromTemplate,
+} from "@/app/lib/templatesApi";
 
 type CreateWorkoutBody = {
     name: string;
@@ -45,6 +51,11 @@ export default function CreateWorkoutPage() {
     const [targetSessions, setTargetSessions] = useState("");
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
+    const [useTemplate, setUseTemplate] = useState(false);
+    const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
+    const [players, setPlayers] = useState<PlayerProfile[]>([]);
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [selectedPlayer, setSelectedPlayer] = useState<PlayerProfile | null>(null);
 
     const playerIdParam = searchParams.get("player_id");
     const parsedPlayerId =
@@ -53,12 +64,56 @@ export default function CreateWorkoutPage() {
             : null;
     const isCoachCreatingForPlayer = user?.role === "COACH";
 
+    useEffect(() => {
+      if (isCoachCreatingForPlayer && user) {
+        loadTemplatesAndPlayers();
+      }
+    }, [isCoachCreatingForPlayer, user]);
+
+    // Pre-select player if coming from specific player page
+    useEffect(() => {
+      if (parsedPlayerId && players.length > 0) {
+        const player = players.find(p => p.id === parsedPlayerId);
+        if (player) {
+          setSelectedPlayer(player);
+        }
+      }
+    }, [parsedPlayerId, players]);
+
+    const loadTemplatesAndPlayers = async () => {
+      try {
+        const [templatesData, coachProfile] = await Promise.all([
+          fetchWorkoutTemplates(),
+          api.get("me/").then((res) => res.data),
+        ]);
+        setTemplates(templatesData);
+        setPlayers(coachProfile.players || []);
+      } catch (err) {
+        console.error("Failed to load templates or players", err);
+      }
+    };
+
+    const handleUseTemplate = async (templateId: number, playerId?: number) => {
+      const targetPlayerId = playerId || selectedPlayer?.id;
+      if (!targetPlayerId) return;
+
+      try {
+        setSaving(true);
+        await createWorkoutFromTemplate(templateId, targetPlayerId);
+        router.push(`/coach-dashboard/my_player/${targetPlayerId}`);
+      } catch (err) {
+        setError(getErrorMessage(err, "Failed to create workout from template."));
+      } finally {
+        setSaving(false);
+      }
+    };
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
 
-        if (isCoachCreatingForPlayer && !parsedPlayerId) {
-            setError("A coach must open this page for a specific player.");
+        if (isCoachCreatingForPlayer && !selectedPlayer && !parsedPlayerId) {
+            setError("A coach must select a player to create a workout for.");
             return;
         }
 
@@ -70,8 +125,9 @@ export default function CreateWorkoutPage() {
             target_sessions: targetSessions,
         };
 
-        if (isCoachCreatingForPlayer && parsedPlayerId) {
-            body.player = parsedPlayerId;
+        const targetPlayerId = selectedPlayer?.id || parsedPlayerId;
+        if (isCoachCreatingForPlayer && targetPlayerId) {
+            body.player = targetPlayerId;
         }
 
         try {
@@ -83,8 +139,8 @@ export default function CreateWorkoutPage() {
             setTargetAttempts("");
             setTargetSessions("");
 
-            if (isCoachCreatingForPlayer && parsedPlayerId) {
-                router.push(`/coach-dashboard/my_player/${parsedPlayerId}`);
+            if (isCoachCreatingForPlayer && targetPlayerId) {
+                router.push(`/coach-dashboard/my_player/${targetPlayerId}`);
             } else {
                 router.push("/workouts");
             }
@@ -106,14 +162,90 @@ export default function CreateWorkoutPage() {
 
     return (
         <div className="mx-auto mt-20 max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg shadow-black/30">
-            <h1 className="mb-2 text-2xl">Create Workout</h1>
+            <h1 className="mb-2 text-2xl text-stone-100">Create Workout</h1>
             <p className="mb-4 text-sm text-stone-400">
-                {isCoachCreatingForPlayer
+                {selectedPlayer
+                    ? `Creating workout for ${selectedPlayer.username}`
+                    : isCoachCreatingForPlayer
                     ? "This workout will be assigned to the selected player."
                     : "Create a workout for your own training plan."}
             </p>
 
-            <form onSubmit={handleCreate} className="flex flex-col gap-4">
+            {isCoachCreatingForPlayer && templates.length > 0 && (
+              <div className="mb-4 flex gap-2">
+                <button
+                  onClick={() => {
+                    setUseTemplate(false);
+                    setShowTemplateModal(false);
+                  }}
+                  className={`flex-1 rounded py-2 text-sm transition ${
+                    !useTemplate
+                      ? "bg-amber-500 text-zinc-950"
+                      : "border border-zinc-700 text-stone-400 hover:text-stone-300"
+                  }`}
+                >
+                  From Scratch
+                </button>
+                <button
+                  onClick={() => {
+                    setUseTemplate(true);
+                    if (parsedPlayerId) {
+                      // Direct template selection for specific player
+                      setShowTemplateModal(false);
+                    } else {
+                      // Show modal for player selection
+                      setShowTemplateModal(true);
+                    }
+                  }}
+                  className={`flex-1 rounded py-2 text-sm transition ${
+                    useTemplate
+                      ? "bg-amber-500 text-zinc-950"
+                      : "border border-zinc-700 text-stone-400 hover:text-stone-300"
+                  }`}
+                >
+                  Use Template
+                </button>
+              </div>
+            )}
+
+            {/* Template selection for specific player */}
+            {useTemplate && parsedPlayerId && selectedPlayer && (
+              <div className="space-y-4">
+                <div className="text-sm text-stone-400 mb-4">
+                  Creating workout for: <span className="text-stone-200 font-semibold">{selectedPlayer.username}</span>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-stone-200">Select Template</label>
+                  <div className="grid gap-2 max-h-60 overflow-y-auto">
+                    {templates.map((template) => (
+                      <button
+                        key={template.id}
+                        onClick={() => handleUseTemplate(template.id)}
+                        disabled={saving}
+                        className="text-left p-3 border border-zinc-700 rounded bg-zinc-800 hover:bg-zinc-700 transition disabled:opacity-50"
+                      >
+                        <div className="font-semibold text-stone-100">{template.name}</div>
+                        {template.description && (
+                          <div className="text-stone-400 text-sm mt-1">{template.description}</div>
+                        )}
+                        <div className="text-stone-500 text-xs mt-2">
+                          {template.target_attempts} shots/session • {template.target_sessions} sessions • {template.goal_percentage}% goal
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setUseTemplate(false)}
+                  className="w-full border border-zinc-700 rounded py-2 text-stone-300 hover:bg-zinc-800 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
+            {!useTemplate && (
+              <form onSubmit={handleCreate} className="flex flex-col gap-4">
                 <input
                     type="text"
                     placeholder="Workout Name"
@@ -162,9 +294,20 @@ export default function CreateWorkoutPage() {
                 >
                     {saving ? "Creating..." : "Create"}
                 </button>
-            </form>
+              </form>
+            )}
 
             {error && <p className="mt-2 text-red-500">{error}</p>}
+
+            {/* Only show modal when no specific player is selected */}
+            <SelectTemplateModal
+              isOpen={showTemplateModal && !parsedPlayerId}
+              templates={templates}
+              players={players}
+              onClose={() => setShowTemplateModal(false)}
+              onSelectTemplate={handleUseTemplate}
+              isLoading={saving}
+            />
         </div>
     );
 }

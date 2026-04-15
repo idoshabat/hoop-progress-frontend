@@ -92,6 +92,12 @@ export default function Navbar() {
                 >
                   Calendar
                 </Link>
+                <Link
+                  href="/templates"
+                  className="hover:text-orange-400 transition"
+                >
+                  Templates
+                </Link>
 
                 <button
                   onClick={logout}
@@ -171,6 +177,13 @@ export default function Navbar() {
                     className="hover:text-orange-400 transition"
                   >
                     Calendar
+                  </Link>
+                  <Link
+                    href="/templates"
+                    onClick={() => setMenuOpen(false)}
+                    className="hover:text-orange-400 transition"
+                  >
+                    Templates
                   </Link>
                 </>
               ) : (
