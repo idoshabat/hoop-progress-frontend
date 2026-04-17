@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
+import PendingRequestsBanner from "@/app/Components/PendingRequestsBanner";
 import { PlayerProfile } from "@/app/types";
 
 export default function CoachDashboardPage() {
@@ -63,6 +64,8 @@ export default function CoachDashboardPage() {
                     Manage Players
                 </Link>
             </div>
+
+            <PendingRequestsBanner />
 
             <section>
                 <h2 className="mb-4 text-2xl font-semibold">My Players</h2>

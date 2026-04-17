@@ -9,7 +9,14 @@ export default function AddSessionPage() {
   const params = useParams();
   const workoutId = Number(params.id);
 
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  });
 //   const [attempts, setAttempts] = useState("");
   const [makes, setMakes] = useState("");
   const [error, setError] = useState("");

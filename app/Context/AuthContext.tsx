@@ -2,8 +2,10 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import api, { setAccessToken } from "@/app/lib/axios";
-import type { PlayerProfile } from "@/app/types";
 import { User } from "@/app/types";
+
+const ACCESS_TOKEN_STORAGE_KEY = "access";
+const AUTH_SESSION_STORAGE_KEY = "hp_has_session";
 
 type AuthContextType = {
   user: User | null;
@@ -28,10 +30,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       const access = res.data.access;
       setAccessToken(access);
-      localStorage.setItem("access", access);
+      localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, access);
+      localStorage.setItem(AUTH_SESSION_STORAGE_KEY, "true");
       return true;
-    } catch {
-      localStorage.removeItem("access");
+    } catch (err: any) {
+      const status = err.response?.status;
+
+      if (status && status !== 401 && status !== 400) {
+        console.error("Token refresh failed", err);
+      }
+
+      localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+      localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
       setAccessToken(null);
       return false;
     }
@@ -61,19 +71,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const initAuth = async () => {
     setLoading(true);
-    const access = localStorage.getItem("access");
+    const access = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+    const hasSession = localStorage.getItem(AUTH_SESSION_STORAGE_KEY) === "true";
 
     if (access) {
-      // Set the token first
       setAccessToken(access);
-      // Try fetching user
       await fetchMe();
-    } else {
-      // No access token, try refreshing
-      const refreshed = await refreshToken();
-      if (refreshed) await fetchMe();
-      else setLoading(false);
+      return;
     }
+
+    if (hasSession) {
+      const refreshed = await refreshToken();
+      if (refreshed) {
+        await fetchMe();
+        return;
+      }
+    }
+
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -85,7 +100,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await api.post("login/", { username, password });
     const access = res.data.access;
     setAccessToken(access);
-    localStorage.setItem("access", access);
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, access);
+    localStorage.setItem(AUTH_SESSION_STORAGE_KEY, "true");
     await fetchMe();
   };
 
@@ -94,7 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await api.post("logout/", {}, { withCredentials: true });
     } catch {}
-    localStorage.removeItem("access");
+    localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
     setAccessToken(null);
     setUser(null);
   };

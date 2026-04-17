@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/app/Context/AuthContext";
+import NotificationBell from "@/app/Components/NotificationBell";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -64,6 +65,7 @@ export default function Navbar() {
                 >
                   My Coaches
                 </Link>
+                <NotificationBell />
                 <button
                   onClick={logout}
                   className="bg-transparent text-red-500 cursor-pointer px-4 py-2 rounded-lg hover:text-red-600 transition"
@@ -98,7 +100,7 @@ export default function Navbar() {
                 >
                   Templates
                 </Link>
-
+                <NotificationBell />
                 <button
                   onClick={logout}
                   className="bg-transparent text-red-500 cursor-pointer px-4 py-2 rounded-lg hover:text-red-600 transition"
@@ -218,6 +220,10 @@ export default function Navbar() {
                   </Link>
                 </>
               )}
+
+              <div className="flex justify-center">
+                <NotificationBell />
+              </div>
 
               <button
                 onClick={() => {

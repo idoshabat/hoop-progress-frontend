@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/app/Context/AuthContext";
+import PendingRequestsBanner from "@/app/Components/PendingRequestsBanner";
 
 const publicHighlights = [
   {
@@ -264,6 +265,10 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <div className="mt-8">
+          <PendingRequestsBanner />
+        </div>
       </div>
     </main>
   );

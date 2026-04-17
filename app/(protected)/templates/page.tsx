@@ -147,14 +147,14 @@ export default function ManageTemplatesPage() {
       {templates.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-stone-400 mb-4">No templates yet. Create one to get started!</p>
-          {!showForm && (
+          {/* {!showForm && (
             <button
               onClick={() => setShowForm(true)}
               className="bg-amber-500 text-zinc-950 rounded px-6 py-2 hover:bg-amber-400 transition font-semibold"
             >
               Create Template
             </button>
-          )}
+          )} */}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -100,3 +100,18 @@ export type WorkoutTemplate = {
     updated_at: string;
 };
 
+export type Notification = {
+    id: number;
+    user: number;
+    notification_type: "WORKOUT_ASSIGNED" | "WORKOUT_COMPLETED" | "SESSION_ADDED" | "CONNECTION_ACCEPTED" | "CONNECTION_REQUESTED";
+    title: string;
+    message: string;
+    related_user?: number;
+    related_user_username?: string;
+    related_workout?: number;
+    related_workout_name?: string;
+    is_read: boolean;
+    read_at?: string | null;
+    created_at: string;
+};
+
