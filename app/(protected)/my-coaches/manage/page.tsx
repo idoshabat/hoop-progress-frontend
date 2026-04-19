@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
+import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
 import { CoachProfile, ConnectionRequest } from "@/app/types";
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -27,6 +28,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 export default function ManageCoachesPage() {
     const { user, loading: authLoading } = useAuth();
+    const { showSuccess } = useSuccessFeedback();
     const [coaches, setCoaches] = useState<CoachProfile[]>([]);
     const [incomingRequests, setIncomingRequests] = useState<ConnectionRequest[]>([]);
     const [outgoingRequests, setOutgoingRequests] = useState<ConnectionRequest[]>([]);
@@ -130,7 +132,10 @@ export default function ManageCoachesPage() {
             setActionMessage("");
             await api.post("add-coach-to-player/", { coach_id: searchedCoach.id });
             await loadPageData();
-            setActionMessage("Connection request sent.");
+            showSuccess({
+                title: "Request Sent",
+                message: `Your connection request to ${searchedCoach.username} was sent.`,
+            });
         } catch (err) {
             console.error(err);
             setActionMessage(getErrorMessage(err, "Failed to send connection request."));
@@ -147,7 +152,10 @@ export default function ManageCoachesPage() {
             setActionMessage("");
             await api.post("remove-coach-from-player/", { coach_id: searchedCoach.id });
             await loadPageData();
-            setActionMessage("Coach removed successfully.");
+            showSuccess({
+                title: "Coach Removed",
+                message: `${searchedCoach.username} was removed successfully.`,
+            });
         } catch (err) {
             console.error(err);
             setActionMessage(getErrorMessage(err, "Failed to remove coach."));
@@ -162,9 +170,13 @@ export default function ManageCoachesPage() {
             setActionMessage("");
             await api.post(`connection-requests/${requestId}/respond/`, { action });
             await loadPageData();
-            setActionMessage(
-                action === "accept" ? "Connection request accepted." : "Connection request rejected."
-            );
+            showSuccess({
+                title: action === "accept" ? "Request Accepted" : "Request Rejected",
+                message:
+                    action === "accept"
+                        ? "The coach is now connected to your account."
+                        : "The connection request was rejected.",
+            });
         } catch (err) {
             console.error(err);
             setActionMessage(getErrorMessage(err, "Failed to update connection request."));
@@ -216,7 +228,7 @@ export default function ManageCoachesPage() {
                 </form>
 
                 {searchMessage && <p className="mt-3 text-sm text-red-500">{searchMessage}</p>}
-                {actionMessage && <p className="mt-3 text-sm text-green-600">{actionMessage}</p>}
+                {actionMessage && <p className="mt-3 text-sm text-red-500">{actionMessage}</p>}
 
                 {searchedCoach && (
                     <div className="mt-5 rounded-lg border border-gray-200 p-4">

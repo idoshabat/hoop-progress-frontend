@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
 import api from "@/app/lib/axios";
 
 export default function AddSessionPage() {
   const router = useRouter();
+  const { showSuccess } = useSuccessFeedback();
   const params = useParams();
   const workoutId = Number(params.id);
 
@@ -41,6 +43,10 @@ export default function AddSessionPage() {
         makes: Number(makes),
       });
 
+      showSuccess({
+        title: "Session Added",
+        message: "The session was logged successfully.",
+      });
       router.push(`/workouts/${workoutId}`);
     } catch (err: unknown) {
       console.error(err);

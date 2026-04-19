@@ -5,15 +5,16 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
+import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
 import { CoachProfile } from "@/app/types";
 
 export default function PublicCoachProfilePage() {
     const params = useParams<{ id: string }>();
     const { user, loading: authLoading } = useAuth();
+    const { showSuccess } = useSuccessFeedback();
     const [profile, setProfile] = useState<CoachProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
     const [isEditing, setIsEditing] = useState(false);
     const [dateOfBirth, setDateOfBirth] = useState("");
 
@@ -50,13 +51,15 @@ export default function PublicCoachProfilePage() {
                 ...profile,
                 date_of_birth: dateOfBirth || null,
             });
-            setSuccess("Profile updated successfully.");
+            showSuccess({
+                title: "Profile Updated",
+                message: "Your coach profile was updated successfully.",
+            });
             setError("");
             setIsEditing(false);
         } catch (err) {
             console.error(err);
             setError("Failed to update profile.");
-            setSuccess("");
         }
     };
 
@@ -83,9 +86,6 @@ export default function PublicCoachProfilePage() {
                     </button>
                 )}
             </div>
-
-            {success && <p className="text-emerald-400">{success}</p>}
-
             <section className="overflow-hidden rounded-4xl border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 shadow-2xl shadow-black/30">
                 <div className="grid gap-4 px-8 py-8 md:grid-cols-3">
                     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5">

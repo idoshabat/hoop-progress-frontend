@@ -1,10 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import api, { setAccessToken } from "@/app/lib/axios";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import api, { registerAuthHandlers, setAccessToken } from "@/app/lib/axios";
 import { User } from "@/app/types";
 
-const ACCESS_TOKEN_STORAGE_KEY = "access";
 const AUTH_SESSION_STORAGE_KEY = "hp_has_session";
 
 type AuthContextType = {
@@ -20,19 +19,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Refresh access token
-  const refreshToken = async (): Promise<boolean> => {
+  const clearAuthState = useCallback(() => {
+    localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+    setAccessToken(null);
+    setUser(null);
+  }, []);
+
+  const refreshToken = useCallback(async (): Promise<string | null> => {
     try {
       const res = await api.post(
         "token/refresh/",
         {},
-        { withCredentials: true }
+        {
+          withCredentials: true,
+          _skipAuthRefresh: true,
+        } as never
       );
       const access = res.data.access;
       setAccessToken(access);
-      localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, access);
       localStorage.setItem(AUTH_SESSION_STORAGE_KEY, "true");
-      return true;
+      return access;
     } catch (err: any) {
       const status = err.response?.status;
 
@@ -40,24 +46,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Token refresh failed", err);
       }
 
-      localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
-      localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
-      setAccessToken(null);
-      return false;
+      clearAuthState();
+      return null;
     }
-  };
+  }, [clearAuthState]);
 
-  // Fetch current user safely
-  const fetchMe = async () => {
+  const fetchMe = useCallback(async () => {
     try {
       const res = await api.get("me/");
       setUser(res.data);
     } catch (err: any) {
       if (err.response?.status === 401) {
-        // Try refreshing token
-        const refreshed = await refreshToken();
-        if (refreshed) {
-          await fetchMe(); // retry after refresh
+        const refreshedAccessToken = await refreshToken();
+        if (refreshedAccessToken) {
+          await fetchMe();
         } else {
           setUser(null);
         }
@@ -67,53 +69,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [refreshToken]);
 
-  const initAuth = async () => {
+  const initAuth = useCallback(async () => {
     setLoading(true);
-    const access = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
     const hasSession = localStorage.getItem(AUTH_SESSION_STORAGE_KEY) === "true";
 
-    if (access) {
-      setAccessToken(access);
-      await fetchMe();
-      return;
-    }
-
     if (hasSession) {
-      const refreshed = await refreshToken();
-      if (refreshed) {
+      const refreshedAccessToken = await refreshToken();
+      if (refreshedAccessToken) {
         await fetchMe();
         return;
       }
     }
 
     setLoading(false);
-  };
+  }, [fetchMe, refreshToken]);
 
   useEffect(() => {
-    initAuth();
-  }, []);
+    registerAuthHandlers({
+      refreshAccessToken: refreshToken,
+      onAuthFailure: clearAuthState,
+    });
+    void initAuth();
+  }, [clearAuthState, initAuth, refreshToken]);
 
-  // Login
   const login = async (username: string, password: string) => {
     const res = await api.post("login/", { username, password });
     const access = res.data.access;
     setAccessToken(access);
-    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, access);
     localStorage.setItem(AUTH_SESSION_STORAGE_KEY, "true");
     await fetchMe();
   };
 
-  // Logout
   const logout = async () => {
     try {
       await api.post("logout/", {}, { withCredentials: true });
     } catch {}
-    localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
-    localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
-    setAccessToken(null);
-    setUser(null);
+    clearAuthState();
   };
 
   return (

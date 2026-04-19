@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
+import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
 import { CoachProfile } from "@/app/types";
 
 export default function CoachProfilePage() {
     const { user, loading: authLoading } = useAuth();
+    const { showSuccess } = useSuccessFeedback();
     const [profile, setProfile] = useState<CoachProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
     const [isEditing, setIsEditing] = useState(false);
     const [dateOfBirth, setDateOfBirth] = useState("");
 
@@ -50,13 +51,15 @@ export default function CoachProfilePage() {
                 ...profile,
                 date_of_birth: dateOfBirth || null,
             });
-            setSuccess("Profile updated successfully.");
+            showSuccess({
+                title: "Profile Updated",
+                message: "Your coach profile was updated successfully.",
+            });
             setError("");
             setIsEditing(false);
         } catch (err) {
             console.error(err);
             setError("Failed to update profile.");
-            setSuccess("");
         }
     };
 
@@ -110,9 +113,6 @@ export default function CoachProfilePage() {
                     </div>
                 </div>
             </section>
-
-            {success && <p className="text-emerald-400">{success}</p>}
-
             <section className="rounded-3xl border border-zinc-800 bg-zinc-900/90 p-8">
                 <h2 className="text-2xl font-semibold text-stone-100">
                     {isEditing ? "Edit Details" : "Profile Details"}
