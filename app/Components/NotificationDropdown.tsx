@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/app/Context/LanguageContext';
 import type { Notification } from '@/app/types';
 
 interface NotificationDropdownProps {
@@ -46,6 +47,8 @@ export default function NotificationDropdown({
   onMarkAsRead,
   onClose,
 }: NotificationDropdownProps) {
+  const { isHebrew } = useLanguage();
+
   const handleMarkAsRead = async (e: React.MouseEvent, notificationId: number) => {
     e.stopPropagation();
     await onMarkAsRead(notificationId);
@@ -66,7 +69,11 @@ export default function NotificationDropdown({
       />
 
       {/* Dropdown Panel */}
-      <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto border border-gray-200">
+      <div
+        className={`absolute mt-2 z-50 max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-2xl w-[min(20rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] ${
+          isHebrew ? "left-0" : "right-0"
+        }`}
+      >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
           <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>

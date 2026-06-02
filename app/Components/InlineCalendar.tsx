@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLanguage } from "@/app/Context/LanguageContext";
 
 type CalendarDay = {
   isoDate: string;
@@ -8,7 +9,10 @@ type CalendarDay = {
   inCurrentMonth: boolean;
 };
 
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_LABELS = {
+  en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  he: ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"],
+};
 
 function getIsoDate(date: Date) {
   const year = date.getFullYear();
@@ -41,8 +45,8 @@ function buildCalendarDays(monthDate: Date): CalendarDay[] {
   });
 }
 
-function formatMonthTitle(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
+function formatMonthTitle(date: Date, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     month: "long",
     year: "numeric",
   }).format(date);
@@ -57,7 +61,9 @@ export default function InlineCalendar({
   selectedDate,
   onSelectDate,
 }: InlineCalendarProps) {
+  const { isHebrew } = useLanguage();
   const todayIso = useMemo(() => getIsoDate(new Date()), []);
+  const locale = isHebrew ? "he-IL" : "en-US";
   const [currentMonth, setCurrentMonth] = useState(() => {
     const selected = getDateParts(selectedDate);
     return new Date(selected.getFullYear(), selected.getMonth(), 1);
@@ -94,7 +100,7 @@ export default function InlineCalendar({
         </button>
 
         <p className="text-lg font-extrabold text-stone-100">
-          {formatMonthTitle(currentMonth)}
+          {formatMonthTitle(currentMonth, locale)}
         </p>
 
         <button
@@ -107,7 +113,7 @@ export default function InlineCalendar({
       </div>
 
       <div className="mt-5 grid grid-cols-7 gap-2">
-        {WEEKDAY_LABELS.map((label) => (
+        {(isHebrew ? WEEKDAY_LABELS.he : WEEKDAY_LABELS.en).map((label) => (
           <div
             key={label}
             className="text-center text-xs font-bold uppercase tracking-[0.2em] text-stone-500"

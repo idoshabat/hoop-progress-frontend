@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/app/lib/axios";
+import { useLanguage } from "@/app/Context/LanguageContext";
 import ProgressBar from "@/app/Components/ProgressBar";
 import WorkoutDetailsSkeleton from "@/app/Components/WorkoutDetailsSkeleton";
 import EmptyState from "@/app/Components/EmptyState";
@@ -23,6 +24,7 @@ import {
 export default function WorkoutDetailsPage() {
     const { id } = useParams();
     const router = useRouter();
+    const { isHebrew, language } = useLanguage();
 
     const [workout, setWorkout] = useState<Workout | null>(null);
     const [loading, setLoading] = useState(true);
@@ -30,23 +32,86 @@ export default function WorkoutDetailsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
+    const text = isHebrew
+        ? {
+              failedLoad: "טעינת האימון נכשלה",
+              notFound: "האימון לא נמצא",
+              successRate: "אחוז הצלחה",
+              goalLine: "יעד",
+              failedDeleteWorkout: "מחיקת האימון נכשלה",
+              deleteSessionConfirm: "למחוק את הסשן הזה?",
+              failedDeleteSession: "מחיקת הסשן נכשלה",
+              back: "חזרה",
+              edit: "ערוך ✏️",
+              delete: "מחק 🗑",
+              targetAttempts: "מספר זריקות יעד",
+              goalPercentage: "אחוז יעד",
+              averagePercentage: "ממוצע אחוזים",
+              status: "סטטוס",
+              completed: "האימון הושלם ✅",
+              goalAchieved: "היעד הושג ✅",
+              goalMissed: "היעד לא הושג ❌",
+              inProgress: "בתהליך 📈",
+              locked: "אימון זה הושלם ולא ניתן לשנות אותו יותר.",
+              sessions: "סשנים",
+              noSessionsTitle: "עדיין אין סשנים 🏀",
+              noSessionsDescription: "תעד את הסשן הראשון שלך כדי להתחיל לעקוב אחרי ביצועים והתקדמות.",
+              addFirstSession: "הוסף סשן ראשון",
+              addSession: "הוסף סשן",
+              shots: "זריקות",
+              progressGraph: "גרף התקדמות",
+              deleteWorkoutTitle: "למחוק את האימון?",
+              deleteWorkoutMessage: "אי אפשר לבטל את הפעולה הזו. כל הסשנים וההתקדמות יימחקו לצמיתות.",
+              deleteWorkoutConfirm: "כן, מחק",
+            }
+        : {
+              failedLoad: "Failed to load workout",
+              notFound: "Workout not found",
+              successRate: "Success %",
+              goalLine: "Goal",
+              failedDeleteWorkout: "Failed to delete workout",
+              deleteSessionConfirm: "Delete this session?",
+              failedDeleteSession: "Failed to delete session",
+              back: "← Back",
+              edit: "Edit ✏️",
+              delete: "Delete 🗑",
+              targetAttempts: "Target Attempts",
+              goalPercentage: "Goal Percentage",
+              averagePercentage: "Average Percentage",
+              status: "Status",
+              completed: "Workout completed ✅",
+              goalAchieved: "Goal Achieved ✅",
+              goalMissed: "Goal Not Achieved ❌",
+              inProgress: "In Progress 📈",
+              locked: "This workout is completed and can no longer be modified.",
+              sessions: "Sessions",
+              noSessionsTitle: "No sessions yet 🏀",
+              noSessionsDescription: "Log your first session to start tracking your performance and progress.",
+              addFirstSession: "Add first session",
+              addSession: "Add Session",
+              shots: "shots",
+              progressGraph: "Progress Graph",
+              deleteWorkoutTitle: "Delete workout?",
+              deleteWorkoutMessage: "This action cannot be undone. All sessions and progress will be permanently deleted.",
+              deleteWorkoutConfirm: "Yes, delete",
+            };
+
+    const loadWorkout = useCallback(async () => {
+        try {
+            const res = await api.get(`workouts/${id}/`);
+            setWorkout(res.data);
+        } catch (err) {
+            console.error(err);
+            setError(isHebrew ? "טעינת האימון נכשלה" : "Failed to load workout");
+        } finally {
+            setLoading(false);
+        }
+    }, [id, isHebrew]);
 
     // ✅ Fetch immediately – auth is guaranteed by layout
     useEffect(() => {
-        const fetchWorkout = async () => {
-            try {
-                const res = await api.get(`workouts/${id}/`);
-                setWorkout(res.data);
-            } catch (err) {
-                console.error(err);
-                setError("Failed to load workout");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchWorkout();
-    }, [id]);
+        void loadWorkout();
+    }, [loadWorkout]);
 
     // ---- Loading / Error states ----
     if (loading) {
@@ -56,16 +121,16 @@ export default function WorkoutDetailsPage() {
     if (error || !workout) {
         return (
             <p className="p-6 text-red-500">
-                {error || "Workout not found"}
+                {error || text.notFound}
             </p>
         );
     }
 
     // ---- Chart Data ----
     const chartData = workout.sessions.map((s) => ({
-        date: new Date(s.date).toLocaleDateString(),
-        "Success %": Number(s.success_rate.toFixed(1)),
-        Goal: workout.goal_percentage,
+        date: new Date(s.date).toLocaleDateString(language === "he" ? "he-IL" : "en-US"),
+        [text.successRate]: Number(s.success_rate.toFixed(1)),
+        [text.goalLine]: workout.goal_percentage,
     }));
 
     const handleDeleteWorkout = async () => {
@@ -76,13 +141,13 @@ export default function WorkoutDetailsPage() {
             router.push("/workouts");
         } catch (err) {
             console.error(err);
-            alert("Failed to delete workout");
+            alert(text.failedDeleteWorkout);
             setDeleting(false);
         }
     };
 
     const handleDeleteSession = async (sessionId: number) => {
-        if (!confirm("Delete this session?")) return;
+        if (!confirm(text.deleteSessionConfirm)) return;
 
         try {
             await api.delete(`sessions/${sessionId}/`);
@@ -110,7 +175,7 @@ export default function WorkoutDetailsPage() {
                 "detail" in err.response.data &&
                 typeof err.response.data.detail === "string"
                     ? err.response.data.detail
-                    : "Failed to delete session";
+                    : text.failedDeleteSession;
             alert(detail);
         }
     };
@@ -128,7 +193,7 @@ export default function WorkoutDetailsPage() {
                         onClick={() => router.push("/workouts")}
                         className="text-amber-300 hover:text-amber-200 hover:underline"
                     >
-                        ← Back
+                        {text.back}
                     </button>
 
                     {workout.num_of_sessions < workout.target_sessions && (
@@ -136,7 +201,7 @@ export default function WorkoutDetailsPage() {
                             href={`/workouts/${workout.id}/edit`}
                             className="text-yellow-600 hover:underline"
                         >
-                            Edit ✏️
+                            {text.edit}
                         </Link>
                     )}
 
@@ -147,7 +212,7 @@ export default function WorkoutDetailsPage() {
                         onClick={() => setShowDeleteModal(true)}
                         className="text-red-600 hover:underline"
                     >
-                        Delete 🗑
+                        {text.delete}
                     </button>
                 </div>
             </div>
@@ -156,42 +221,42 @@ export default function WorkoutDetailsPage() {
             {/* Workout Info */}
             <div className="grid grid-cols-2 gap-4 border p-4 rounded mb-6">
                 <div>
-                    <p className="text-gray-500">Target Attempts</p>
+                    <p className="text-gray-500">{text.targetAttempts}</p>
                     <p className="font-semibold">{workout.target_attempts}</p>
                 </div>
 
                 <div>
-                    <p className="text-gray-500">Goal Percentage</p>
+                    <p className="text-gray-500">{text.goalPercentage}</p>
                     <p className="font-semibold">{workout.goal_percentage}%</p>
                 </div>
 
                 <div>
-                    <p className="text-gray-500">Average Percentage</p>
+                    <p className="text-gray-500">{text.averagePercentage}</p>
                     <p className="font-semibold">
                         {workout.average_percentage?.toFixed(1) ?? 0}%
                     </p>
                 </div>
 
                 <div>
-                    <p className="text-gray-500">Status</p>
+                    <p className="text-gray-500">{text.status}</p>
                     {workout.num_of_sessions >= workout.target_sessions ? (
                         <>
                             <p className="font-semibold text-green-600">
-                                Workout completed ✅
+                                {text.completed}
                             </p>
                             {workout.is_successful ? (
                                 <p className="font-semibold text-green-600">
-                                    Goal Achieved ✅
+                                    {text.goalAchieved}
                                 </p>
                             ) : (
                                 <p className="font-semibold text-red-500">
-                                    Goal Not Achieved ❌
+                                    {text.goalMissed}
                                 </p>
                             )}
                         </>
                     ) : (
                         <p className="font-semibold text-orange-500">
-                            In Progress 📈
+                            {text.inProgress}
                         </p>
                     )}
                 </div>
@@ -199,13 +264,13 @@ export default function WorkoutDetailsPage() {
 
             {workout.is_completed && (
                 <div className="mb-4 rounded border border-amber-500/40 bg-zinc-900 p-4 text-amber-300">
-                    🔒 This workout is completed and can no longer be modified.
+                    🔒 {text.locked}
                 </div>
             )}
 
             {/* Sessions Progress */}
             <h2 className="text-2xl font-semibold mb-3">
-                Sessions {workout.num_of_sessions}/{workout.target_sessions}
+                {text.sessions} {workout.num_of_sessions}/{workout.target_sessions}
             </h2>
 
             <ProgressBar
@@ -218,9 +283,9 @@ export default function WorkoutDetailsPage() {
             {/* Sessions List */}
             {workout.sessions.length === 0 ? (
                 <EmptyState
-                    title="No sessions yet 🏀"
-                    description="Log your first session to start tracking your performance and progress."
-                    actionLabel="Add first session"
+                    title={text.noSessionsTitle}
+                    description={text.noSessionsDescription}
+                    actionLabel={text.addFirstSession}
                     actionHref={`/workouts/${workout.id}/add-session`}
                 />
             ) : (
@@ -230,7 +295,7 @@ export default function WorkoutDetailsPage() {
                             href={`/workouts/${workout.id}/add-session`}
                             className="inline-block mt-4 bg-green-600 text-white px-4 py-2 rounded"
                         >
-                            Add Session
+                            {text.addSession}
                         </Link>
                     )}
                     {workout.sessions.map((session) => {
@@ -243,10 +308,10 @@ export default function WorkoutDetailsPage() {
                             >
                                 <div>
                                     <p className="font-semibold">
-                                        {new Date(session.date).toLocaleDateString()}
+                                        {new Date(session.date).toLocaleDateString(language === "he" ? "he-IL" : "en-US")}
                                     </p>
                                     <p className="text-gray-500 text-sm">
-                                        {session.makes} / {session.attempts} shots
+                                        {session.makes} / {session.attempts} {text.shots}
                                     </p>
                                 </div>
 
@@ -261,14 +326,14 @@ export default function WorkoutDetailsPage() {
                                                 href={`/workouts/${workout.id}/edit-session/${session.id}/`}
                                                 className="text-amber-300 hover:text-amber-200 hover:underline"
                                             >
-                                                Edit
+                                                {isHebrew ? "ערוך" : "Edit"}
                                             </Link>
 
                                             <button
                                                 onClick={() => handleDeleteSession(session.id)}
                                                 className="text-red-500 hover:underline"
                                             >
-                                                Delete
+                                                {isHebrew ? "מחק" : "Delete"}
                                             </button>
                                         </>
                                     )}
@@ -281,7 +346,7 @@ export default function WorkoutDetailsPage() {
                     {/* Graph */}
                     <div className="mt-8 border p-4 rounded">
                         <h3 className="text-xl font-semibold mb-4">
-                            Progress Graph
+                            {text.progressGraph}
                         </h3>
 
                         <ResponsiveContainer width="100%" height={300}>
@@ -294,14 +359,14 @@ export default function WorkoutDetailsPage() {
 
                                 <Line
                                     type="monotone"
-                                    dataKey="Success %"
+                                    dataKey={text.successRate}
                                     stroke="#3b82f6"
                                     dot={{ r: 5 }}
                                 />
 
                                 <Line
                                     type="monotone"
-                                    dataKey="Goal"
+                                    dataKey={text.goalLine}
                                     stroke="#22c55e"
                                     strokeDasharray="5 5"
                                     dot={false}
@@ -313,9 +378,9 @@ export default function WorkoutDetailsPage() {
             )}
             {showDeleteModal && (
                 <ConfirmModal
-                    title="Delete workout?"
-                    message="This action cannot be undone. All sessions and progress will be permanently deleted."
-                    confirmText="Yes, delete"
+                    title={text.deleteWorkoutTitle}
+                    message={text.deleteWorkoutMessage}
+                    confirmText={text.deleteWorkoutConfirm}
                     onCancel={() => setShowDeleteModal(false)}
                     onConfirm={handleDeleteWorkout}
                     loading={deleting}

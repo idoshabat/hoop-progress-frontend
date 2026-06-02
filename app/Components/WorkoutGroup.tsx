@@ -1,4 +1,7 @@
+"use client";
+
 import type { Workout } from "@/app/types";
+import { useLanguage } from "@/app/Context/LanguageContext";
 import WorkoutCard from "@/app/Components/WorkoutCard";
 
 type WorkoutGroupProps = {
@@ -18,6 +21,8 @@ export default function WorkoutGroup({
     sourceLabel,
     sourceTone,
 }: WorkoutGroupProps) {
+    const { isHebrew } = useLanguage();
+
     return (
         <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -28,10 +33,10 @@ export default function WorkoutGroup({
 
                 <div className="flex gap-2 text-sm font-medium">
                     <span className="rounded-full bg-zinc-900 px-3 py-1 text-stone-300">
-                        {inProgress.length} in progress
+                        {inProgress.length} {isHebrew ? "בתהליך" : "in progress"}
                     </span>
                     <span className="rounded-full bg-zinc-900 px-3 py-1 text-stone-300">
-                        {completed.length} completed
+                        {completed.length} {isHebrew ? "הושלמו" : "completed"}
                     </span>
                 </div>
             </div>
@@ -39,10 +44,12 @@ export default function WorkoutGroup({
             <div className="mt-6 space-y-6">
                 <div>
                     <h3 className="mb-3 text-lg font-semibold text-stone-200">
-                        In Progress
+                        {isHebrew ? "בתהליך" : "In Progress"}
                     </h3>
                     {inProgress.length === 0 ? (
-                        <p className="text-stone-500">No workouts in progress here.</p>
+                        <p className="text-stone-500">
+                            {isHebrew ? "אין כאן אימונים פעילים כרגע." : "No workouts in progress here."}
+                        </p>
                     ) : (
                         <div className="space-y-4">
                             {inProgress.map((workout) => (
@@ -59,10 +66,12 @@ export default function WorkoutGroup({
 
                 <div>
                     <h3 className="mb-3 text-lg font-semibold text-stone-200">
-                        Completed
+                        {isHebrew ? "הושלמו" : "Completed"}
                     </h3>
                     {completed.length === 0 ? (
-                        <p className="text-stone-500">No completed workouts here yet.</p>
+                        <p className="text-stone-500">
+                            {isHebrew ? "עדיין אין כאן אימונים שהושלמו." : "No completed workouts here yet."}
+                        </p>
                     ) : (
                         <div className="space-y-4">
                             {completed.map((workout) => (

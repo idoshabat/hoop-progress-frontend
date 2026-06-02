@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../Context/AuthContext";
+import { useLanguage } from "@/app/Context/LanguageContext";
 import api from "@/app/lib/axios";
 
 export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { isHebrew } = useLanguage();
 
   const [step, setStep] = useState<"choose" | "form">("choose");
   const [role, setRole] = useState<"PLAYER" | "COACH" | null>(null);
@@ -17,6 +19,48 @@ export default function RegisterPage() {
   const [position, setPosition] = useState("PG");
   const [height, setHeight] = useState("");
   const [error, setError] = useState("");
+
+  const text = isHebrew
+    ? {
+        title: "יצירת חשבון",
+        choose: "בחר איך תרצה להירשם",
+        player: "הירשם כשחקן",
+        coach: "הירשם כמאמן",
+        back: "חזרה",
+        registeringAs: "נרשם בתור",
+        username: "שם משתמש",
+        password: "סיסמה",
+        height: "גובה (ס\"מ)",
+        create: "צור חשבון",
+        failed: "ההרשמה נכשלה",
+        positions: {
+          PG: "רכז",
+          SG: "קלע",
+          SF: "סמול פורוורד",
+          PF: "פאוור פורוורד",
+          C: "סנטר",
+        },
+      }
+    : {
+        title: "Create Account",
+        choose: "Choose how you want to register",
+        player: "Sign up as Player",
+        coach: "Sign up as Coach",
+        back: "Back",
+        registeringAs: "Registering as",
+        username: "Username",
+        password: "Password",
+        height: "Height (cm)",
+        create: "Create Account",
+        failed: "Registration failed",
+        positions: {
+          PG: "Point Guard",
+          SG: "Shooting Guard",
+          SF: "Small Forward",
+          PF: "Power Forward",
+          C: "Center",
+        },
+      };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,18 +89,18 @@ export default function RegisterPage() {
       await login(username, password);
       router.push("/");
     } catch {
-      setError("Registration failed");
+      setError(text.failed);
     }
   };
 
   return (
     <div className="mx-auto mt-20 max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-stone-100 shadow-lg shadow-black/30">
-      <h1 className="mb-6 text-center text-3xl font-bold">Create Account</h1>
+      <h1 className="mb-6 text-center text-3xl font-bold">{text.title}</h1>
 
       {step === "choose" && (
         <div className="flex flex-col gap-4">
           <p className="mb-4 text-center text-stone-400">
-            Choose how you want to register
+            {text.choose}
           </p>
 
           <button
@@ -66,7 +110,7 @@ export default function RegisterPage() {
             }}
             className="rounded-xl border border-amber-500/40 bg-amber-500 p-4 text-lg font-semibold text-zinc-950 transition hover:bg-amber-400"
           >
-            Sign up as Player
+            {text.player}
           </button>
 
           <button
@@ -76,7 +120,7 @@ export default function RegisterPage() {
             }}
             className="rounded-xl border border-zinc-700 bg-zinc-800 p-4 text-lg font-semibold text-amber-300 transition hover:bg-zinc-700"
           >
-            Sign up as Coach
+            {text.coach}
           </button>
         </div>
       )}
@@ -88,15 +132,15 @@ export default function RegisterPage() {
             onClick={() => setStep("choose")}
             className="mb-2 text-left text-sm text-stone-400 hover:text-amber-300"
           >
-            Back
+            {text.back}
           </button>
 
           <p className="text-center text-sm text-stone-400">
-            Registering as <span className="font-semibold">{role}</span>
+            {text.registeringAs} <span className="font-semibold">{role === "PLAYER" ? text.player : text.coach}</span>
           </p>
 
           <input
-            placeholder="Username"
+            placeholder={text.username}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="rounded-md border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
@@ -104,7 +148,7 @@ export default function RegisterPage() {
 
           <input
             type="password"
-            placeholder="Password"
+            placeholder={text.password}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="rounded-md border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
@@ -124,16 +168,16 @@ export default function RegisterPage() {
                 onChange={(e) => setPosition(e.target.value)}
                 className="rounded-md border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
               >
-                <option value="PG">Point Guard</option>
-                <option value="SG">Shooting Guard</option>
-                <option value="SF">Small Forward</option>
-                <option value="PF">Power Forward</option>
-                <option value="C">Center</option>
+                <option value="PG">{text.positions.PG}</option>
+                <option value="SG">{text.positions.SG}</option>
+                <option value="SF">{text.positions.SF}</option>
+                <option value="PF">{text.positions.PF}</option>
+                <option value="C">{text.positions.C}</option>
               </select>
 
               <input
                 type="number"
-                placeholder="Height (cm)"
+                placeholder={text.height}
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
                 className="rounded-md border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
@@ -142,7 +186,7 @@ export default function RegisterPage() {
           )}
 
           <button className="mt-2 rounded-md bg-amber-500 p-3 font-semibold text-zinc-950 transition hover:bg-amber-400">
-            Create Account
+            {text.create}
           </button>
         </form>
       )}

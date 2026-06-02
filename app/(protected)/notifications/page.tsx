@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNotifications } from '@/app/hooks/useNotifications';
 import Link from 'next/link';
+import EmptyState from '@/app/Components/EmptyState';
 import type { Notification } from '@/app/types';
 
 export default function NotificationsPage() {
@@ -95,13 +96,12 @@ export default function NotificationsPage() {
         ) : null}
 
         {notifications.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="text-6xl mb-4">📭</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No notifications yet</h3>
-            <p className="text-gray-600">
-              You'll see notifications here when coaches assign workouts, players complete sessions, or connection requests happen.
-            </p>
-          </div>
+          <EmptyState
+            eyebrow="Activity Feed"
+            icon="📭"
+            title="No notifications yet"
+            description="You&apos;ll see notifications here when coaches assign workouts, players complete sessions, or connection requests happen."
+          />
         ) : (
           <div className="space-y-4">
             {notifications.map((notification) => (

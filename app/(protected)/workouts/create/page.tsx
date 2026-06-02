@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
+import { useLanguage } from "@/app/Context/LanguageContext";
 import { PlayerProfile, WorkoutTemplate } from "@/app/types";
 import SelectTemplateModal from "@/app/Components/SelectTemplateModal";
 import {
@@ -43,6 +44,7 @@ export default function CreateWorkoutPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, loading: authLoading } = useAuth();
+    const { isHebrew } = useLanguage();
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
@@ -56,6 +58,60 @@ export default function CreateWorkoutPage() {
     const [players, setPlayers] = useState<PlayerProfile[]>([]);
     const [showTemplateModal, setShowTemplateModal] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerProfile | null>(null);
+
+    const text = isHebrew
+      ? {
+          failedTemplate: "יצירת אימון מתבנית נכשלה.",
+          playerRequired: "מאמן חייב לבחור שחקן כדי ליצור עבורו אימון.",
+          failedWorkout: "יצירת האימון נכשלה.",
+          loading: "טוען...",
+          loginRequired: "יש להתחבר כדי ליצור אימון.",
+          title: "יצירת אימון",
+          selectedPlayerPrefix: "יוצר אימון עבור",
+          coachSubtitle: "האימון הזה יוקצה לשחקן שנבחר.",
+          playerSubtitle: "צור אימון עבור תוכנית האימון האישית שלך.",
+          fromScratch: "מאפס",
+          useTemplate: "השתמש בתבנית",
+          creatingFor: "יוצר אימון עבור:",
+          selectTemplate: "בחר תבנית",
+          shotsSession: "זריקות לסשן",
+          sessions: "סשנים",
+          goal: "יעד",
+          cancel: "ביטול",
+          workoutName: "שם האימון",
+          description: "תיאור",
+          goalPercentage: "אחוז יעד",
+          targetAttempts: "מספר זריקות יעד",
+          targetSessions: "מספר סשנים יעד",
+          creating: "יוצר...",
+          create: "צור",
+        }
+      : {
+          failedTemplate: "Failed to create workout from template.",
+          playerRequired: "A coach must select a player to create a workout for.",
+          failedWorkout: "Failed to create workout.",
+          loading: "Loading...",
+          loginRequired: "Please log in to create a workout.",
+          title: "Create Workout",
+          selectedPlayerPrefix: "Creating workout for",
+          coachSubtitle: "This workout will be assigned to the selected player.",
+          playerSubtitle: "Create a workout for your own training plan.",
+          fromScratch: "From Scratch",
+          useTemplate: "Use Template",
+          creatingFor: "Creating workout for:",
+          selectTemplate: "Select Template",
+          shotsSession: "shots/session",
+          sessions: "sessions",
+          goal: "goal",
+          cancel: "Cancel",
+          workoutName: "Workout Name",
+          description: "Description",
+          goalPercentage: "Goal Percentage",
+          targetAttempts: "Target Attempts",
+          targetSessions: "Target Sessions",
+          creating: "Creating...",
+          create: "Create",
+        };
 
     const playerIdParam = searchParams.get("player_id");
     const parsedPlayerId =
@@ -93,16 +149,28 @@ export default function CreateWorkoutPage() {
       }
     };
 
-    const handleUseTemplate = async (templateId: number, playerId?: number) => {
-      const targetPlayerId = playerId || selectedPlayer?.id;
-      if (!targetPlayerId) return;
+    const handleUseTemplate = async (templateId: number, playerIds?: number[]) => {
+      const resolvedPlayerIds =
+        playerIds && playerIds.length > 0
+          ? playerIds
+          : selectedPlayer?.id
+            ? [selectedPlayer.id]
+            : [];
+
+      if (resolvedPlayerIds.length === 0) return;
 
       try {
         setSaving(true);
-        await createWorkoutFromTemplate(templateId, targetPlayerId);
-        router.push(`/coach-dashboard/my_player/${targetPlayerId}`);
+        await Promise.all(
+          resolvedPlayerIds.map((playerId) => createWorkoutFromTemplate(templateId, playerId))
+        );
+        router.push(
+          resolvedPlayerIds.length === 1
+            ? `/coach-dashboard/my_player/${resolvedPlayerIds[0]}`
+            : "/coach-dashboard"
+        );
       } catch (err) {
-        setError(getErrorMessage(err, "Failed to create workout from template."));
+        setError(getErrorMessage(err, text.failedTemplate));
       } finally {
         setSaving(false);
       }
@@ -113,7 +181,7 @@ export default function CreateWorkoutPage() {
         setError("");
 
         if (isCoachCreatingForPlayer && !selectedPlayer && !parsedPlayerId) {
-            setError("A coach must select a player to create a workout for.");
+            setError(text.playerRequired);
             return;
         }
 
@@ -146,29 +214,29 @@ export default function CreateWorkoutPage() {
             }
         } catch (err) {
             console.error(err);
-            setError(getErrorMessage(err, "Failed to create workout."));
+            setError(getErrorMessage(err, text.failedWorkout));
         } finally {
             setSaving(false);
         }
     };
 
     if (authLoading) {
-        return <p className="p-6">Loading...</p>;
+        return <p className="p-6">{text.loading}</p>;
     }
 
     if (!user) {
-        return <p className="p-6">Please log in to create a workout.</p>;
+        return <p className="p-6">{text.loginRequired}</p>;
     }
 
     return (
         <div className="mx-auto mt-20 max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg shadow-black/30">
-            <h1 className="mb-2 text-2xl text-stone-100">Create Workout</h1>
+            <h1 className="mb-2 text-2xl text-stone-100">{text.title}</h1>
             <p className="mb-4 text-sm text-stone-400">
                 {selectedPlayer
-                    ? `Creating workout for ${selectedPlayer.username}`
+                    ? `${text.selectedPlayerPrefix} ${selectedPlayer.username}`
                     : isCoachCreatingForPlayer
-                    ? "This workout will be assigned to the selected player."
-                    : "Create a workout for your own training plan."}
+                    ? text.coachSubtitle
+                    : text.playerSubtitle}
             </p>
 
             {isCoachCreatingForPlayer && templates.length > 0 && (
@@ -184,7 +252,7 @@ export default function CreateWorkoutPage() {
                       : "border border-zinc-700 text-stone-400 hover:text-stone-300"
                   }`}
                 >
-                  From Scratch
+                  {text.fromScratch}
                 </button>
                 <button
                   onClick={() => {
@@ -203,7 +271,7 @@ export default function CreateWorkoutPage() {
                       : "border border-zinc-700 text-stone-400 hover:text-stone-300"
                   }`}
                 >
-                  Use Template
+                  {text.useTemplate}
                 </button>
               </div>
             )}
@@ -212,10 +280,10 @@ export default function CreateWorkoutPage() {
             {useTemplate && parsedPlayerId && selectedPlayer && (
               <div className="space-y-4">
                 <div className="text-sm text-stone-400 mb-4">
-                  Creating workout for: <span className="text-stone-200 font-semibold">{selectedPlayer.username}</span>
+                  {text.creatingFor} <span className="text-stone-200 font-semibold">{selectedPlayer.username}</span>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-stone-200">Select Template</label>
+                  <label className="block text-sm font-medium text-stone-200">{text.selectTemplate}</label>
                   <div className="grid gap-2 max-h-60 overflow-y-auto">
                     {templates.map((template) => (
                       <button
@@ -229,7 +297,7 @@ export default function CreateWorkoutPage() {
                           <div className="text-stone-400 text-sm mt-1">{template.description}</div>
                         )}
                         <div className="text-stone-500 text-xs mt-2">
-                          {template.target_attempts} shots/session • {template.target_sessions} sessions • {template.goal_percentage}% goal
+                          {template.target_attempts} {text.shotsSession} • {template.target_sessions} {text.sessions} • {template.goal_percentage}% {text.goal}
                         </div>
                       </button>
                     ))}
@@ -239,7 +307,7 @@ export default function CreateWorkoutPage() {
                   onClick={() => setUseTemplate(false)}
                   className="w-full border border-zinc-700 rounded py-2 text-stone-300 hover:bg-zinc-800 transition"
                 >
-                  Cancel
+                  {text.cancel}
                 </button>
               </div>
             )}
@@ -248,14 +316,14 @@ export default function CreateWorkoutPage() {
               <form onSubmit={handleCreate} className="flex flex-col gap-4">
                 <input
                     type="text"
-                    placeholder="Workout Name"
+                    placeholder={text.workoutName}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
                     required
                 />
                 <textarea
-                    placeholder="Description"
+                    placeholder={text.description}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
@@ -263,7 +331,7 @@ export default function CreateWorkoutPage() {
                 />
                 <input
                     type="number"
-                    placeholder="Goal Percentage"
+                    placeholder={text.goalPercentage}
                     value={goalPercentage}
                     min={0}
                     max={100}
@@ -273,7 +341,7 @@ export default function CreateWorkoutPage() {
                 />
                 <input
                     type="number"
-                    placeholder="Target Attempts"
+                    placeholder={text.targetAttempts}
                     value={targetAttempts}
                     onChange={(e) => setTargetAttempts(e.target.value)}
                     className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
@@ -281,7 +349,7 @@ export default function CreateWorkoutPage() {
                 />
                 <input
                     type="number"
-                    placeholder="Target Sessions"
+                    placeholder={text.targetSessions}
                     value={targetSessions}
                     onChange={(e) => setTargetSessions(e.target.value)}
                     className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
@@ -292,7 +360,7 @@ export default function CreateWorkoutPage() {
                     disabled={saving}
                     className="rounded bg-amber-500 p-2 text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
                 >
-                    {saving ? "Creating..." : "Create"}
+                    {saving ? text.creating : text.create}
                 </button>
               </form>
             )}

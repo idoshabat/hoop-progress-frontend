@@ -1,5 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from "./Context/AuthContext";
+import { LanguageProvider } from "./Context/LanguageContext";
 import { SuccessFeedbackProvider } from "./Context/SuccessFeedbackContext";
 import Navbar from "./Components/Navbar";
 import { NotificationProvider } from "./hooks/useNotifications";
@@ -19,16 +20,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="he" dir="rtl">
       <body className="min-h-screen bg-zinc-950 text-stone-100">
-        <AuthProvider>
-          <SuccessFeedbackProvider>
-            <NotificationProvider>
-              <Navbar />
-              {children}
-            </NotificationProvider>
-          </SuccessFeedbackProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <SuccessFeedbackProvider>
+              <NotificationProvider>
+                <Navbar />
+                {children}
+              </NotificationProvider>
+            </SuccessFeedbackProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

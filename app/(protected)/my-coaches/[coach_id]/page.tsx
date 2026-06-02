@@ -71,6 +71,8 @@ export default function CoachAssignedWorkoutsPage() {
 
             {workouts.length === 0 ? (
                 <EmptyState
+                    eyebrow="Coach Feed"
+                    icon="📋"
                     title="No workouts from this coach yet"
                     description="This coach has not assigned any workouts to you yet."
                 />

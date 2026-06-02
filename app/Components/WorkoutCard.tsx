@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { Workout } from "@/app/types";
+import { useLanguage } from "@/app/Context/LanguageContext";
 
 type WorkoutCardProps = {
     workout: Workout;
@@ -12,6 +15,8 @@ export default function WorkoutCard({
     sourceLabel,
     sourceTone,
 }: WorkoutCardProps) {
+    const { isHebrew, language } = useLanguage();
+
     return (
         <Link
             href={`/workouts/${workout.id}`}
@@ -21,7 +26,8 @@ export default function WorkoutCard({
                 <div>
                     <h3 className="text-lg font-semibold text-stone-100">{workout.name}</h3>
                     <p className="mt-1 text-sm text-stone-400">
-                        Created at: {new Date(workout.created_at).toLocaleString()}
+                        {isHebrew ? "נוצר בתאריך:" : "Created at:"}{" "}
+                        {new Date(workout.created_at).toLocaleString(language === "he" ? "he-IL" : "en-US")}
                     </p>
                 </div>
 
@@ -36,33 +42,43 @@ export default function WorkoutCard({
                                 : "bg-amber-500/15 text-amber-300"
                         }`}
                     >
-                        {workout.is_completed ? "Completed" : "In Progress"}
+                        {workout.is_completed
+                            ? isHebrew
+                                ? "הושלם"
+                                : "Completed"
+                            : isHebrew
+                              ? "בתהליך"
+                              : "In Progress"}
                     </span>
                 </div>
             </div>
 
             <p className="mt-4">
-                Attempts: {workout.total_makes}/{workout.total_attempts}
+                {isHebrew ? "ניסיונות:" : "Attempts:"} {workout.total_makes}/{workout.total_attempts}
             </p>
             <p className="mt-1">
-                Sessions: {workout.num_of_sessions}/{workout.target_sessions}
+                {isHebrew ? "סשנים:" : "Sessions:"} {workout.num_of_sessions}/{workout.target_sessions}
             </p>
             <p className="mt-1">
-                Goal: {workout.goal_percentage}%
+                {isHebrew ? "יעד:" : "Goal:"} {workout.goal_percentage}%
             </p>
             {!workout.is_completed &&(
                 <p className={`mt-1 ${workout.average_percentage >= workout.goal_percentage ? "text-green-600" : "text-red-500"} font-semibold`}>
-                    Current Avg: {workout.average_percentage.toFixed(1)}%
+                    {isHebrew ? "ממוצע נוכחי:" : "Current Avg:"} {workout.average_percentage.toFixed(1)}%
                 </p>
             )}
 
             {workout.is_completed && (
                 <p className="mt-2 font-semibold">
-                    Result:{" "}
+                    {isHebrew ? "תוצאה:" : "Result:"}{" "}
                     {workout.is_successful ? (
-                        <span className="text-green-600">Goal Achieved✅</span>
+                        <span className="text-green-600">
+                            {isHebrew ? "היעד הושג ✅" : "Goal Achieved✅"}
+                        </span>
                     ) : (
-                        <span className="text-red-500">Goal Not Achieved❌</span>
+                        <span className="text-red-500">
+                            {isHebrew ? "היעד לא הושג ❌" : "Goal Not Achieved❌"}
+                        </span>
                     )}
                 </p>
             )}

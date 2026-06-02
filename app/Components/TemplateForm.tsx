@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { WorkoutTemplate } from "@/app/types";
+import { useLanguage } from "@/app/Context/LanguageContext";
 
 interface TemplateFormProps {
   template?: WorkoutTemplate;
@@ -20,6 +21,7 @@ export default function TemplateForm({
   onSubmit,
   isLoading = false,
 }: TemplateFormProps) {
+  const { isHebrew } = useLanguage();
   const [formData, setFormData] = useState({
     name: template?.name || "",
     description: template?.description || "",
@@ -29,6 +31,42 @@ export default function TemplateForm({
   });
 
   const [error, setError] = useState("");
+
+  const text = isHebrew
+    ? {
+        templateName: "שם התבנית *",
+        templatePlaceholder: "למשל: קליעה ל-3 נקודות",
+        description: "תיאור",
+        descriptionPlaceholder: "תיאור אופציונלי...",
+        shotsPerSession: "זריקות לסשן *",
+        sessionsTarget: "יעד סשנים *",
+        goal: "אחוז יעד *",
+        nameRequired: "שם התבנית הוא שדה חובה",
+        attemptsMin: "מספר הזריקות חייב להיות גדול מ-0",
+        sessionsMin: "מספר הסשנים חייב להיות גדול מ-0",
+        goalRange: "אחוז היעד חייב להיות בין 0 ל-100",
+        saveFailed: "שמירת התבנית נכשלה",
+        saving: "שומר...",
+        update: "עדכן תבנית",
+        create: "צור תבנית",
+      }
+    : {
+        templateName: "Template Name *",
+        templatePlaceholder: "e.g., 3-Point Shooting",
+        description: "Description",
+        descriptionPlaceholder: "Optional description...",
+        shotsPerSession: "Shots / Session *",
+        sessionsTarget: "Sessions Target *",
+        goal: "Goal % *",
+        nameRequired: "Template name is required",
+        attemptsMin: "Target attempts must be greater than 0",
+        sessionsMin: "Target sessions must be greater than 0",
+        goalRange: "Goal percentage must be between 0 and 100",
+        saveFailed: "Failed to save template",
+        saving: "Saving...",
+        update: "Update Template",
+        create: "Create Template",
+      };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -48,22 +86,22 @@ export default function TemplateForm({
     setError("");
 
     if (!formData.name.trim()) {
-      setError("Template name is required");
+      setError(text.nameRequired);
       return;
     }
 
     if (formData.target_attempts <= 0) {
-      setError("Target attempts must be greater than 0");
+      setError(text.attemptsMin);
       return;
     }
 
     if (formData.target_sessions <= 0) {
-      setError("Target sessions must be greater than 0");
+      setError(text.sessionsMin);
       return;
     }
 
     if (formData.goal_percentage < 0 || formData.goal_percentage > 100) {
-      setError("Goal percentage must be between 0 and 100");
+      setError(text.goalRange);
       return;
     }
 
@@ -71,7 +109,7 @@ export default function TemplateForm({
       await onSubmit(formData);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to save template"
+        err instanceof Error ? err.message : text.saveFailed
       );
     }
   };
@@ -79,25 +117,25 @@ export default function TemplateForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-stone-200">Template Name *</label>
+        <label className="block text-sm font-medium text-stone-200">{text.templateName}</label>
         <input
           type="text"
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., 3-Point Shooting"
+          placeholder={text.templatePlaceholder}
           className="w-full border border-zinc-700 bg-zinc-950 p-2 rounded text-stone-100 placeholder-stone-500 focus:border-amber-500 focus:outline-none"
           disabled={isLoading}
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-stone-200">Description</label>
+        <label className="block text-sm font-medium text-stone-200">{text.description}</label>
         <textarea
           name="description"
           value={formData.description}
           onChange={handleChange}
-          placeholder="Optional description..."
+          placeholder={text.descriptionPlaceholder}
           rows={3}
           className="w-full border border-zinc-700 bg-zinc-950 p-2 rounded text-stone-100 placeholder-stone-500 focus:border-amber-500 focus:outline-none"
           disabled={isLoading}
@@ -106,7 +144,7 @@ export default function TemplateForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-stone-200">Shots / Session *</label>
+          <label className="block text-sm font-medium text-stone-200">{text.shotsPerSession}</label>
           <input
             type="number"
             name="target_attempts"
@@ -118,7 +156,7 @@ export default function TemplateForm({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-200">Sessions Target *</label>
+          <label className="block text-sm font-medium text-stone-200">{text.sessionsTarget}</label>
           <input
             type="number"
             name="target_sessions"
@@ -132,7 +170,7 @@ export default function TemplateForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-stone-200">Goal % *</label>
+        <label className="block text-sm font-medium text-stone-200">{text.goal}</label>
         <input
           type="number"
           name="goal_percentage"
@@ -153,7 +191,7 @@ export default function TemplateForm({
         disabled={isLoading}
         className="w-full bg-amber-500 text-zinc-950 rounded py-2 hover:bg-amber-400 disabled:opacity-50 font-semibold transition"
       >
-        {isLoading ? "Saving..." : template ? "Update Template" : "Create Template"}
+        {isLoading ? text.saving : template ? text.update : text.create}
       </button>
     </form>
   );

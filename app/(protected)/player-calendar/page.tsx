@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
+import { useLanguage } from "@/app/Context/LanguageContext";
 import InlineCalendar from "@/app/Components/InlineCalendar";
 import { Session } from "@/app/types";
 
@@ -40,55 +41,95 @@ function getRateClasses(session: Session) {
 
 export default function PlayerCalendarPage() {
   const { user, loading: authLoading } = useAuth();
+  const { isHebrew, language } = useLanguage();
   const [selectedDate, setSelectedDate] = useState(formatLocalDate(new Date()));
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const text = useMemo(
+    () =>
+      isHebrew
+        ? {
+            failedLoad: "טעינת הסשנים לתאריך הזה נכשלה.",
+            loading: "טוען יומן...",
+            loginRequired: "יש להתחבר כדי לצפות ביומן שלך.",
+            accessDenied: "אין גישה. לשחקנים בלבד.",
+            activity: "יומן אימון",
+            title: "יומן שחקן",
+            intro:
+              "בחר תאריך וראה כל סשן שתיעדת באותו יום, עם קישורים ישירים חזרה לכל אימון.",
+            dayView: "תצוגת יום",
+            noSessionsForDate: "לא תועדו סשנים בתאריך הזה.",
+            sessionsFound: "סשנים נמצאו",
+            openWorkouts: "פתח אימונים",
+            noneLogged: "עדיין לא תועד שום דבר כאן.",
+            makes: "קליעות",
+          }
+        : {
+            failedLoad: "Failed to load sessions for this date.",
+            loading: "Loading calendar...",
+            loginRequired: "Please log in to view your calendar.",
+            accessDenied: "Access denied. Players only.",
+            activity: "Training Log",
+            title: "Player Calendar",
+            intro:
+              "Pick a date and see every session you logged that day, with direct links back to each workout.",
+            dayView: "Day View",
+            noSessionsForDate: "No sessions were recorded on this date.",
+            sessionsFound: "sessions found",
+            openWorkouts: "Open workouts",
+            noneLogged: "Nothing was logged here yet.",
+            makes: "Makes",
+          },
+    [isHebrew]
+  );
+
+  const loadSessions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("sessions/by-date/", {
+        params: { date: selectedDate },
+      });
+      setSessions(res.data || []);
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setSessions([]);
+      setError(text.failedLoad);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedDate, text.failedLoad]);
+
   useEffect(() => {
     if (authLoading || !user) return;
-
-    const loadSessions = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get("sessions/by-date/", {
-          params: { date: selectedDate },
-        });
-        setSessions(res.data || []);
-        setError("");
-      } catch (err) {
-        console.error(err);
-        setSessions([]);
-        setError("Failed to load sessions for this date.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSessions();
-  }, [authLoading, selectedDate, user]);
+    void loadSessions();
+  }, [authLoading, user, loadSessions]);
 
   const formattedDate = useMemo(
     () =>
-      new Date(`${selectedDate}T00:00:00`).toLocaleDateString(undefined, {
+      new Date(`${selectedDate}T00:00:00`).toLocaleDateString(
+        language === "he" ? "he-IL" : "en-US",
+        {
         weekday: "long",
         month: "long",
         day: "numeric",
         year: "numeric",
       }),
-    [selectedDate]
+    [language, selectedDate]
   );
 
   if (authLoading || loading) {
-    return <p className="p-6 text-stone-400">Loading calendar...</p>;
+    return <p className="p-6 text-stone-400">{text.loading}</p>;
   }
 
   if (!user) {
-    return <p className="p-6 text-stone-400">Please log in to view your calendar.</p>;
+    return <p className="p-6 text-stone-400">{text.loginRequired}</p>;
   }
 
   if (user.role !== "PLAYER") {
-    return <p className="p-6 text-red-500">Access denied. Players only.</p>;
+    return <p className="p-6 text-red-500">{text.accessDenied}</p>;
   }
 
   return (
@@ -97,11 +138,11 @@ export default function PlayerCalendarPage() {
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-300/80">
-              Training Log
+              {text.activity}
             </p>
-            <h1 className="mt-3 text-4xl font-black text-stone-100">Player Calendar</h1>
+            <h1 className="mt-3 text-4xl font-black text-stone-100">{text.title}</h1>
             <p className="mt-4 text-lg leading-8 text-stone-400">
-              Pick a date and see every session you logged that day, with direct links back to each workout.
+              {text.intro}
             </p>
           </div>
         </div>
@@ -113,19 +154,21 @@ export default function PlayerCalendarPage() {
         <div className="rounded-[1.75rem] border border-zinc-800 bg-zinc-900/90 p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-amber-300/80">Day View</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-amber-300/80">{text.dayView}</p>
             <h2 className="mt-2 text-2xl font-bold text-stone-100">{formattedDate}</h2>
             <p className="mt-2 text-stone-400">
               {sessions.length === 0
-                ? "No sessions were recorded on this date."
-                : `${sessions.length} session${sessions.length === 1 ? "" : "s"} found`}
+                ? text.noSessionsForDate
+                : isHebrew
+                  ? `${sessions.length} ${text.sessionsFound}`
+                  : `${sessions.length} session${sessions.length === 1 ? "" : "s"} found`}
             </p>
           </div>
           <Link
             href="/workouts"
             className="rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-3 font-semibold text-amber-300 hover:border-amber-500/40 hover:bg-zinc-800"
           >
-            Open workouts
+            {text.openWorkouts}
           </Link>
         </div>
 
@@ -133,7 +176,7 @@ export default function PlayerCalendarPage() {
 
         {sessions.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-zinc-700 bg-zinc-950/60 p-8 text-stone-500">
-            Nothing was logged here yet.
+            {text.noneLogged}
           </div>
         ) : (
           <div className="mt-6 grid gap-4">
@@ -147,7 +190,7 @@ export default function PlayerCalendarPage() {
                   <div>
                     <h3 className="text-xl font-semibold text-stone-100">{getWorkoutName(session)}</h3>
                     <p className="mt-2 text-stone-400">
-                      Makes: {session.makes}/{session.attempts}
+                      {text.makes}: {session.makes}/{session.attempts}
                     </p>
                   </div>
                   <div className={`rounded-full border px-4 py-2 text-sm font-semibold ${getRateClasses(session)}`}>

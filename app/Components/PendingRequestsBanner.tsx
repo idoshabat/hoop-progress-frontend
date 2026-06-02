@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
+import { useLanguage } from "@/app/Context/LanguageContext";
 import { ConnectionRequest } from "@/app/types";
 
 const PREVIEW_LIMIT = 2;
 
 export default function PendingRequestsBanner() {
     const { user, loading: authLoading } = useAuth();
+    const { isHebrew } = useLanguage();
     const [requests, setRequests] = useState<ConnectionRequest[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -51,10 +53,16 @@ export default function PendingRequestsBanner() {
     const remainingCount = Math.max(incomingNames.length - PREVIEW_LIMIT, 0);
     const details =
         incomingNames.length > 0
-            ? `${previewNames}${remainingCount > 0 ? ` and ${remainingCount} more` : ""} sent ${
+            ? isHebrew
+              ? `${previewNames}${remainingCount > 0 ? ` ועוד ${remainingCount}` : ""} שלחו ${
+                  incomingNames.length === 1 ? "לך בקשת חיבור." : "לך בקשות חיבור."
+                }`
+              : `${previewNames}${remainingCount > 0 ? ` and ${remainingCount} more` : ""} sent ${
                   incomingNames.length === 1 ? "you a connection request." : "you connection requests."
-              }`
-            : "You have pending connection requests waiting for your response.";
+                }`
+            : isHebrew
+              ? "יש לך בקשות חיבור ממתינות שמחכות לתשובה שלך."
+              : "You have pending connection requests waiting for your response.";
 
     const manageHref = user.role === "COACH" ? "/coach-dashboard/manage" : "/my-coaches/manage";
 
@@ -67,10 +75,12 @@ export default function PendingRequestsBanner() {
                     </div>
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300/80">
-                            Pending Requests
+                            {isHebrew ? "בקשות ממתינות" : "Pending Requests"}
                         </p>
                         <h2 className="mt-2 text-xl font-bold text-stone-100">
-                            {requests.length} pending connection request{requests.length === 1 ? "" : "s"}
+                            {isHebrew
+                              ? `${requests.length} בקשות חיבור ממתינות`
+                              : `${requests.length} pending connection request${requests.length === 1 ? "" : "s"}`}
                         </h2>
                         <p className="mt-2 max-w-2xl text-sm leading-7 text-stone-300">
                             {details}
@@ -82,7 +92,7 @@ export default function PendingRequestsBanner() {
                     href={manageHref}
                     className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-400"
                 >
-                    Open requests
+                    {isHebrew ? "פתח בקשות" : "Open requests"}
                 </Link>
             </div>
         </section>

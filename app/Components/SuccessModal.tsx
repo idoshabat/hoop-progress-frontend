@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/app/Context/LanguageContext";
+
 type SuccessModalProps = {
   visible: boolean;
   title: string;
@@ -13,6 +15,8 @@ export default function SuccessModal({
   message,
   onClose,
 }: SuccessModalProps) {
+  const { isHebrew } = useLanguage();
+
   if (!visible) {
     return null;
   }
@@ -21,7 +25,7 @@ export default function SuccessModal({
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-6">
       <button
         type="button"
-        aria-label="Close success modal"
+        aria-label={isHebrew ? "סגור חלון הצלחה" : "Close success modal"}
         onClick={onClose}
         className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
       />
@@ -56,7 +60,7 @@ export default function SuccessModal({
           onClick={onClose}
           className="mt-6 min-w-36 rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 hover:bg-amber-400"
         >
-          Continue
+          {isHebrew ? "המשך" : "Continue"}
         </button>
       </div>
     </div>

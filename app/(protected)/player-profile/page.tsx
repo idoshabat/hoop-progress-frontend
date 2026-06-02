@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
+import { useLanguage } from "@/app/Context/LanguageContext";
 import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
 import { PlayerProfile } from "@/app/types";
 
 export default function PlayerProfilePage() {
     const { user, loading: authLoading } = useAuth();
+    const { isHebrew } = useLanguage();
     const { showSuccess } = useSuccessFeedback();
     const [profile, setProfile] = useState<PlayerProfile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -17,31 +19,93 @@ export default function PlayerProfilePage() {
     const [height, setHeight] = useState<number | "">("");
     const [dateOfBirth, setDateOfBirth] = useState("");
 
+    const text = useMemo(
+        () =>
+            isHebrew
+                ? {
+              onlyPlayers: "רק שחקנים יכולים לצפות בעמוד הזה.",
+              failedLoad: "טעינת הפרופיל נכשלה.",
+              updatedTitle: "הפרופיל עודכן",
+              updatedMessage: "פרופיל השחקן שלך עודכן בהצלחה.",
+              failedUpdate: "עדכון הפרופיל נכשל.",
+              loading: "טוען פרופיל...",
+              notFound: "הפרופיל לא נמצא.",
+              profileLabel: "פרופיל שחקן",
+              intro: "הזהות שלך ב-HoopProgress. שמור על פרופיל חד כדי שמאמנים ושותפים לאימון יבינו את המשחק שלך במבט אחד.",
+              cancelEditing: "בטל עריכה",
+              editProfile: "ערוך פרופיל",
+              position: "עמדה",
+              height: "גובה",
+              connectedCoaches: "מאמנים מחוברים",
+              notAvailable: "לא זמין",
+              editDetails: "עריכת פרטים",
+              profileDetails: "פרטי פרופיל",
+              dateOfBirth: "תאריך לידה",
+              heightCm: "גובה (ס\"מ)",
+              saveChanges: "שמור שינויים",
+              username: "שם משתמש",
+              pg: "רכז",
+              sg: "קלע",
+              sf: "סמול פורוורד",
+              pf: "פאוור פורוורד",
+              c: "סנטר",
+            }
+        : {
+              onlyPlayers: "Only players can view this page.",
+              failedLoad: "Failed to load profile.",
+              updatedTitle: "Profile Updated",
+              updatedMessage: "Your player profile was updated successfully.",
+              failedUpdate: "Failed to update profile.",
+              loading: "Loading profile...",
+              notFound: "Profile not found.",
+              profileLabel: "Player Profile",
+              intro: "Your identity on HoopProgress. Keep your profile sharp so coaches and training partners can understand your game at a glance.",
+              cancelEditing: "Cancel editing",
+              editProfile: "Edit profile",
+              position: "Position",
+              height: "Height",
+              connectedCoaches: "Connected Coaches",
+              notAvailable: "N/A",
+              editDetails: "Edit Details",
+              profileDetails: "Profile Details",
+              dateOfBirth: "Date of Birth",
+              heightCm: "Height (cm)",
+              saveChanges: "Save Changes",
+              username: "Username",
+              pg: "Point Guard",
+              sg: "Shooting Guard",
+              sf: "Small Forward",
+              pf: "Power Forward",
+              c: "Center",
+            },
+        [isHebrew]
+    );
+
+    const loadProfile = useCallback(async () => {
+        try {
+            if (!user) return;
+            if (user.role !== "PLAYER") {
+                setError(text.onlyPlayers);
+                return;
+            }
+
+            const res = await api.get("players-profiles/me/");
+            setProfile(res.data);
+            setPosition(res.data.position);
+            setHeight(res.data.height_cm ?? "");
+            setDateOfBirth(res.data.date_of_birth ?? "");
+        } catch (err) {
+            console.error(err);
+            setError(text.failedLoad);
+        } finally {
+            setLoading(false);
+        }
+    }, [text, user]);
+
     useEffect(() => {
         if (authLoading || !user) return;
-
-        const fetchProfile = async () => {
-            try {
-                if (user.role !== "PLAYER") {
-                    setError("Only players can view this page.");
-                    return;
-                }
-
-                const res = await api.get("players-profiles/me/");
-                setProfile(res.data);
-                setPosition(res.data.position);
-                setHeight(res.data.height_cm ?? "");
-                setDateOfBirth(res.data.date_of_birth ?? "");
-            } catch (err) {
-                console.error(err);
-                setError("Failed to load profile.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProfile();
-    }, [authLoading, user]);
+        void loadProfile();
+    }, [authLoading, user, loadProfile]);
 
     const handleSave = async () => {
         if (!profile) return;
@@ -60,19 +124,19 @@ export default function PlayerProfilePage() {
                 date_of_birth: dateOfBirth || null,
             });
             showSuccess({
-                title: "Profile Updated",
-                message: "Your player profile was updated successfully.",
+                title: text.updatedTitle,
+                message: text.updatedMessage,
             });
             setError("");
             setIsEditing(false);
         } catch (err) {
             console.error(err);
-            setError("Failed to update profile.");
+            setError(text.failedUpdate);
         }
     };
 
-    if (authLoading || loading) return <p className="p-6">Loading profile...</p>;
-    if (error || !profile) return <p className="p-6 text-red-500">{error || "Profile not found."}</p>;
+    if (authLoading || loading) return <p className="p-6">{text.loading}</p>;
+    if (error || !profile) return <p className="p-6 text-red-500">{error || text.notFound}</p>;
 
     return (
         <div className="mx-auto max-w-5xl space-y-8 p-6">
@@ -81,14 +145,13 @@ export default function PlayerProfilePage() {
                     <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                             <p className="text-sm uppercase tracking-[0.25em] text-amber-300/80">
-                                Player Profile
+                                {text.profileLabel}
                             </p>
                             <h1 className="mt-3 text-4xl font-black text-stone-100">
                                 {profile.username}
                             </h1>
                             <p className="mt-3 max-w-2xl text-stone-400">
-                                Your identity on HoopProgress. Keep your profile sharp so coaches
-                                and training partners can understand your game at a glance.
+                                {text.intro}
                             </p>
                         </div>
 
@@ -97,24 +160,24 @@ export default function PlayerProfilePage() {
                             onClick={() => setIsEditing((prev) => !prev)}
                             className="rounded-xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 hover:bg-amber-400"
                         >
-                            {isEditing ? "Cancel editing" : "Edit profile"}
+                            {isEditing ? text.cancelEditing : text.editProfile}
                         </button>
                     </div>
                 </div>
 
                 <div className="grid gap-4 px-8 py-8 md:grid-cols-3">
                     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5">
-                        <p className="text-sm text-stone-500">Position</p>
+                        <p className="text-sm text-stone-500">{text.position}</p>
                         <p className="mt-2 text-2xl font-bold text-stone-100">{profile.position}</p>
                     </div>
                     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5">
-                        <p className="text-sm text-stone-500">Height</p>
+                        <p className="text-sm text-stone-500">{text.height}</p>
                         <p className="mt-2 text-2xl font-bold text-stone-100">
-                            {profile.height_cm ? `${profile.height_cm} cm` : "N/A"}
+                            {profile.height_cm ? `${profile.height_cm} cm` : text.notAvailable}
                         </p>
                     </div>
                     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5">
-                        <p className="text-sm text-stone-500">Connected Coaches</p>
+                        <p className="text-sm text-stone-500">{text.connectedCoaches}</p>
                         <p className="mt-2 text-2xl font-bold text-amber-300">
                             {profile.coaches.length}
                         </p>
@@ -123,14 +186,14 @@ export default function PlayerProfilePage() {
             </section>
             <section className="rounded-3xl border border-zinc-800 bg-zinc-900/90 p-8">
                 <h2 className="text-2xl font-semibold text-stone-100">
-                    {isEditing ? "Edit Details" : "Profile Details"}
+                    {isEditing ? text.editDetails : text.profileDetails}
                 </h2>
 
                 {isEditing ? (
                     <div className="mt-6 grid gap-4 md:grid-cols-2">
                         <div>
                             <label className="mb-2 block text-sm font-medium text-stone-400">
-                                Date of Birth
+                                {text.dateOfBirth}
                             </label>
                             <input
                                 type="date"
@@ -142,24 +205,24 @@ export default function PlayerProfilePage() {
 
                         <div>
                             <label className="mb-2 block text-sm font-medium text-stone-400">
-                                Position
+                                {text.position}
                             </label>
                             <select
                                 value={position}
                                 onChange={(e) => setPosition(e.target.value)}
                                 className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-stone-100"
                             >
-                                <option value="PG">Point Guard</option>
-                                <option value="SG">Shooting Guard</option>
-                                <option value="SF">Small Forward</option>
-                                <option value="PF">Power Forward</option>
-                                <option value="C">Center</option>
+                                <option value="PG">{text.pg}</option>
+                                <option value="SG">{text.sg}</option>
+                                <option value="SF">{text.sf}</option>
+                                <option value="PF">{text.pf}</option>
+                                <option value="C">{text.c}</option>
                             </select>
                         </div>
 
                         <div>
                             <label className="mb-2 block text-sm font-medium text-stone-400">
-                                Height (cm)
+                                {text.heightCm}
                             </label>
                             <input
                                 type="number"
@@ -177,22 +240,22 @@ export default function PlayerProfilePage() {
                                 onClick={handleSave}
                                 className="rounded-xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 hover:bg-amber-400"
                             >
-                                Save Changes
+                                {text.saveChanges}
                             </button>
                         </div>
                     </div>
                 ) : (
                     <div className="mt-6 grid gap-4 md:grid-cols-2">
                         <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
-                            <p className="text-sm text-stone-500">Username</p>
+                            <p className="text-sm text-stone-500">{text.username}</p>
                             <p className="mt-2 text-lg font-semibold text-stone-100">
                                 {profile.username}
                             </p>
                         </div>
                         <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
-                            <p className="text-sm text-stone-500">Date of Birth</p>
+                            <p className="text-sm text-stone-500">{text.dateOfBirth}</p>
                             <p className="mt-2 text-lg font-semibold text-stone-100">
-                                {profile.date_of_birth || "N/A"}
+                                {profile.date_of_birth || text.notAvailable}
                             </p>
                         </div>
                     </div>

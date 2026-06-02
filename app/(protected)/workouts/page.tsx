@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/app/lib/axios";
 import { Workout } from "@/app/types";
@@ -8,37 +8,70 @@ import WorkoutsSkeleton from "@/app/Components/WorkoutSkeleton";
 import WorkoutGroup from "@/app/Components/WorkoutGroup";
 import EmptyState from "@/app/Components/EmptyState";
 import { useAuth } from "@/app/Context/AuthContext";
+import { useLanguage } from "@/app/Context/LanguageContext";
 
 export default function WorkoutsPage() {
     const { user, loading: authLoading } = useAuth();
+    const { isHebrew } = useLanguage();
     const [assignedByMe, setAssignedByMe] = useState<Workout[]>([]);
     const [assignedByMyCoaches, setAssignedByMyCoaches] = useState<Workout[]>([]);
     const [selectedSource, setSelectedSource] = useState<"me" | "coaches">("me");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    const text = isHebrew
+        ? {
+              failed: "טעינת האימונים נכשלה",
+              emptyTitle: "עדיין אין אימונים",
+              emptyDescription:
+                  "התחל את האימון הראשון שלך כדי לעקוב אחרי התקדמות, סשנים וביצועים לאורך זמן.",
+              emptyAction: "+ צור את האימון הראשון שלך",
+              title: "האימונים שלי",
+              subtitle: "האימונים שלך מאורגנים לפי מי שהקצה כל אימון.",
+              addWorkout: "+ הוסף אימון",
+              assignedByMe: "הוקצו על ידי",
+              assignedByMeDescription: "אימונים שיצרת עבור תוכנית האימון האישית שלך.",
+              assignedByCoach: "הוקצו על ידי המאמנים שלי",
+              assignedByCoachDescription: "אימונים שניתנו לך על ידי אחד המאמנים שלך.",
+              assignedByCoachLabel: "הוקצה על ידי מאמן",
+          }
+        : {
+              failed: "Failed to load workouts",
+              emptyTitle: "No workouts yet",
+              emptyDescription:
+                  "Start your first workout to track progress, sessions, and performance over time.",
+              emptyAction: "+ Create your first workout",
+              title: "My Workouts",
+              subtitle: "Your training is organized by who assigned each workout.",
+              addWorkout: "+ Add Workout",
+              assignedByMe: "Assigned by me",
+              assignedByMeDescription: "Workouts you created for your own training plan.",
+              assignedByCoach: "Assigned by my coaches",
+              assignedByCoachDescription: "Workouts given to you by one of your coaches.",
+              assignedByCoachLabel: "Assigned by coach",
+          };
+
+    const loadWorkouts = useCallback(async () => {
+        try {
+            const [assignedByMeRes, assignedByMyCoachesRes] = await Promise.all([
+                api.get("workouts/assigned-by-me/"),
+                api.get("workouts/assigned-by-my-coaches/"),
+            ]);
+
+            setAssignedByMe(assignedByMeRes.data);
+            setAssignedByMyCoaches(assignedByMyCoachesRes.data);
+        } catch (err) {
+            console.error(err);
+            setError(isHebrew ? "טעינת האימונים נכשלה" : "Failed to load workouts");
+        } finally {
+            setLoading(false);
+        }
+    }, [isHebrew]);
+
     useEffect(() => {
         if (authLoading || !user) return;
-
-        const fetchWorkouts = async () => {
-            try {
-                const [assignedByMeRes, assignedByMyCoachesRes] = await Promise.all([
-                    api.get("workouts/assigned-by-me/"),
-                    api.get("workouts/assigned-by-my-coaches/"),
-                ]);
-
-                setAssignedByMe(assignedByMeRes.data);
-                setAssignedByMyCoaches(assignedByMyCoachesRes.data);
-            } catch (err) {
-                console.error(err);
-                setError("Failed to load workouts");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchWorkouts();
-    }, [authLoading, user]);
+        void loadWorkouts();
+    }, [authLoading, user, loadWorkouts]);
 
     if (authLoading || loading) {
         return <WorkoutsSkeleton />;
@@ -59,19 +92,19 @@ export default function WorkoutsPage() {
     const selectedGroup =
         selectedSource === "me"
             ? {
-                  title: "Assigned by me",
-                  description: "Workouts you created for your own training plan.",
+                  title: text.assignedByMe,
+                  description: text.assignedByMeDescription,
                   inProgress: assignedByMeInProgress,
                   completed: assignedByMeCompleted,
-                  sourceLabel: "Assigned by me",
+                  sourceLabel: text.assignedByMe,
                   sourceTone: "bg-amber-500/15 text-amber-300",
               }
             : {
-                  title: "Assigned by my coaches",
-                  description: "Workouts given to you by one of your coaches.",
+                  title: text.assignedByCoach,
+                  description: text.assignedByCoachDescription,
                   inProgress: assignedByMyCoachesInProgress,
                   completed: assignedByMyCoachesCompleted,
-                  sourceLabel: "Assigned by coach",
+                  sourceLabel: text.assignedByCoachLabel,
                   sourceTone: "bg-zinc-800 text-amber-300",
               };
 
@@ -79,9 +112,9 @@ export default function WorkoutsPage() {
         return (
             <div className="mx-auto mt-10 max-w-3xl p-4">
                 <EmptyState
-                    title="No workouts yet"
-                    description="Start your first workout to track progress, sessions, and performance over time."
-                    actionLabel="+ Create your first workout"
+                    title={text.emptyTitle}
+                    description={text.emptyDescription}
+                    actionLabel={text.emptyAction}
                     actionHref="/workouts/create"
                 />
             </div>
@@ -92,9 +125,9 @@ export default function WorkoutsPage() {
         <div className="mx-auto mt-10 max-w-4xl space-y-8 p-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold">My Workouts</h1>
+                    <h1 className="text-2xl font-bold">{text.title}</h1>
                     <p className="mt-1 text-sm text-stone-400">
-                        Your training is organized by who assigned each workout.
+                        {text.subtitle}
                     </p>
                 </div>
 
@@ -102,7 +135,7 @@ export default function WorkoutsPage() {
                     href="/workouts/create"
                     className="rounded bg-amber-500 px-4 py-2 text-zinc-950 hover:bg-amber-400"
                 >
-                    + Add Workout
+                    {text.addWorkout}
                 </Link>
             </div>
 
@@ -116,7 +149,7 @@ export default function WorkoutsPage() {
                             : "text-stone-400 hover:text-stone-100"
                     }`}
                 >
-                    Assigned by me ({assignedByMe.length})
+                    {text.assignedByMe} ({assignedByMe.length})
                 </button>
                 <button
                     type="button"
@@ -127,7 +160,7 @@ export default function WorkoutsPage() {
                             : "text-stone-400 hover:text-stone-100"
                     }`}
                 >
-                    Assigned by my coaches ({assignedByMyCoaches.length})
+                    {text.assignedByCoach} ({assignedByMyCoaches.length})
                 </button>
             </div>
 

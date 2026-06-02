@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
+import { useLanguage } from "@/app/Context/LanguageContext";
 import api from "@/app/lib/axios";
 
 export default function AddSessionPage() {
   const router = useRouter();
   const { showSuccess } = useSuccessFeedback();
+  const { isHebrew } = useLanguage();
   const params = useParams();
   const workoutId = Number(params.id);
 
@@ -23,6 +25,26 @@ export default function AddSessionPage() {
   const [makes, setMakes] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const text = isHebrew
+    ? {
+        successTitle: "הסשן נוסף",
+        successMessage: "הסשן תועד בהצלחה.",
+        failed: "הוספת הסשן נכשלה",
+        title: "הוספת סשן",
+        makes: "קליעות",
+        saving: "שומר...",
+        submit: "הוסף סשן",
+      }
+    : {
+        successTitle: "Session Added",
+        successMessage: "The session was logged successfully.",
+        failed: "Failed to add session",
+        title: "Add Session",
+        makes: "Makes",
+        saving: "Saving...",
+        submit: "Add Session",
+      };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,13 +66,13 @@ export default function AddSessionPage() {
       });
 
       showSuccess({
-        title: "Session Added",
-        message: "The session was logged successfully.",
+        title: text.successTitle,
+        message: text.successMessage,
       });
       router.push(`/workouts/${workoutId}`);
     } catch (err: unknown) {
       console.error(err);
-      setError("Failed to add session");
+      setError(text.failed);
     } finally {
       setLoading(false);
     }
@@ -58,7 +80,7 @@ export default function AddSessionPage() {
 
   return (
     <div className="mx-auto mt-20 max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg shadow-black/30">
-      <h1 className="text-2xl font-semibold mb-4">Add Session</h1>
+      <h1 className="text-2xl font-semibold mb-4">{text.title}</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
@@ -81,7 +103,7 @@ export default function AddSessionPage() {
 
         <input
           type="number"
-          placeholder="Makes"
+          placeholder={text.makes}
           value={makes}
           onChange={(e) => setMakes(e.target.value)}
           className="border p-2 rounded"
@@ -93,7 +115,7 @@ export default function AddSessionPage() {
           disabled={loading}
           className="rounded bg-amber-500 p-2 text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
         >
-          {loading ? "Saving..." : "Add Session"}
+          {loading ? text.saving : text.submit}
         </button>
       </form>
 

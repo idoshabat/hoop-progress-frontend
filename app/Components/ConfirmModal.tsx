@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/app/Context/LanguageContext";
+
 type ConfirmModalProps = {
     title: string;
     message: string;
@@ -13,12 +15,14 @@ type ConfirmModalProps = {
 export default function ConfirmModal({
     title,
     message,
-    confirmText = "Delete",
-    cancelText = "Cancel",
+    confirmText,
+    cancelText,
     onConfirm,
     onCancel,
     loading = false,
 }: ConfirmModalProps) {
+    const { isHebrew } = useLanguage();
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
             <div className="w-full max-w-md space-y-4 rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-lg">
@@ -36,7 +40,7 @@ export default function ConfirmModal({
                         disabled={loading}
                         className="rounded border border-zinc-600 px-4 py-2 text-stone-200 hover:bg-zinc-800"
                     >
-                        {cancelText}
+                        {cancelText || (isHebrew ? "ביטול" : "Cancel")}
                     </button>
 
                     <button
@@ -44,7 +48,11 @@ export default function ConfirmModal({
                         disabled={loading}
                         className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                     >
-                        {loading ? "Deleting..." : confirmText}
+                        {loading
+                            ? isHebrew
+                                ? "מוחק..."
+                                : "Deleting..."
+                            : confirmText || (isHebrew ? "מחק" : "Delete")}
                     </button>
                 </div>
             </div>

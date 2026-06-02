@@ -141,6 +141,8 @@ export default function CoachPlayerWorkoutDetailsPage() {
 
                 {workout.sessions.length === 0 ? (
                     <EmptyState
+                        eyebrow="Session Log"
+                        icon="📈"
                         title="No sessions yet"
                         description="This workout does not have any logged sessions yet."
                     />
