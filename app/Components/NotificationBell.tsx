@@ -10,6 +10,7 @@ export default function NotificationBell() {
     unreadCount,
     notifications,
     markAsRead,
+    markAllAsRead,
     isConnected,
     fetchNotifications,
     isLoading,
@@ -21,6 +22,9 @@ export default function NotificationBell() {
 
     if (nextOpenState) {
       await fetchNotifications();
+      if (unreadCount > 0) {
+        await markAllAsRead();
+      }
     }
   };
 

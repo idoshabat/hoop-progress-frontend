@@ -46,6 +46,18 @@ export function NotificationProvider({
   const [isAvailable, setIsAvailable] = useState(true);
   const availabilityCheckedRef = useRef(false);
 
+  const getErrorStatus = useCallback((err: unknown): number | undefined => {
+    return typeof err === "object" && err !== null && "response" in err
+      ? (err as { response?: { status?: number } }).response?.status
+      : undefined;
+  }, []);
+
+  const getErrorCode = useCallback((err: unknown): string | undefined => {
+    return typeof err === "object" && err !== null && "code" in err
+      ? (err as { code?: string }).code
+      : undefined;
+  }, []);
+
   const clearNotifications = useCallback(() => {
     setNotifications([]);
     setUnreadCount(0);
@@ -56,9 +68,10 @@ export function NotificationProvider({
   }, []);
 
   const handleNotificationError = useCallback((err: unknown, fallbackMessage: string) => {
-    const status = typeof err === "object" && err !== null && "response" in err
-      ? (err as { response?: { status?: number } }).response?.status
-      : undefined;
+    const status = getErrorStatus(err);
+    const code = getErrorCode(err);
+    const message =
+      err instanceof Error ? err.message.toLowerCase() : "";
 
     if (status === 404) {
       setIsAvailable(false);
@@ -73,9 +86,22 @@ export function NotificationProvider({
       return;
     }
 
+    // When the device wakes up after a long sleep, the first polling request can
+    // time out or hit a stale token before auth refresh catches up. Treat these
+    // as transient so the UI recovers quietly on the next successful fetch.
+    if (
+      status === 401 ||
+      code === "ECONNABORTED" ||
+      code === "ERR_NETWORK" ||
+      message.includes("timeout")
+    ) {
+      setError(null);
+      return;
+    }
+
     console.error(fallbackMessage, err);
     setError("Failed to load notifications.");
-  }, []);
+  }, [getErrorCode, getErrorStatus]);
 
   const fetchNotifications = useCallback(async () => {
     if (!user || !isAvailable) return;
@@ -220,6 +246,24 @@ export function NotificationProvider({
     }, 30000);
 
     return () => window.clearInterval(intervalId);
+  }, [authLoading, fetchNotifications, isAvailable, user]);
+
+  useEffect(() => {
+    if (authLoading || !user || !isAvailable) return;
+
+    const handleResume = () => {
+      if (document.visibilityState === "visible") {
+        void fetchNotifications();
+      }
+    };
+
+    window.addEventListener("focus", handleResume);
+    document.addEventListener("visibilitychange", handleResume);
+
+    return () => {
+      window.removeEventListener("focus", handleResume);
+      document.removeEventListener("visibilitychange", handleResume);
+    };
   }, [authLoading, fetchNotifications, isAvailable, user]);
 
   const value = useMemo(

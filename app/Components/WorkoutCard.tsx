@@ -8,12 +8,18 @@ type WorkoutCardProps = {
     workout: Workout;
     sourceLabel: string;
     sourceTone: string;
+    showRetryButton?: boolean;
+    onRetry?: (workout: Workout) => Promise<void> | void;
+    isRetrying?: boolean;
 };
 
 export default function WorkoutCard({
     workout,
     sourceLabel,
     sourceTone,
+    showRetryButton = false,
+    onRetry,
+    isRetrying = false,
 }: WorkoutCardProps) {
     const { isHebrew, language } = useLanguage();
 
@@ -69,18 +75,41 @@ export default function WorkoutCard({
             )}
 
             {workout.is_completed && (
-                <p className="mt-2 font-semibold">
-                    {isHebrew ? "תוצאה:" : "Result:"}{" "}
-                    {workout.is_successful ? (
-                        <span className="text-green-600">
-                            {isHebrew ? "היעד הושג ✅" : "Goal Achieved✅"}
-                        </span>
-                    ) : (
-                        <span className="text-red-500">
-                            {isHebrew ? "היעד לא הושג ❌" : "Goal Not Achieved❌"}
-                        </span>
-                    )}
-                </p>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                    <p className="font-semibold">
+                        {isHebrew ? "תוצאה:" : "Result:"}{" "}
+                        {workout.is_successful ? (
+                            <span className="text-green-600">
+                                {isHebrew ? "היעד הושג ✅" : "Goal Achieved✅"}
+                            </span>
+                        ) : (
+                            <span className="text-red-500">
+                                {isHebrew ? "היעד לא הושג ❌" : "Goal Not Achieved❌"}
+                            </span>
+                        )}
+                    </p>
+
+                    {showRetryButton && onRetry ? (
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                void onRetry(workout);
+                            }}
+                            disabled={isRetrying}
+                            className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {isRetrying
+                                ? isHebrew
+                                    ? "יוצר..."
+                                    : "Creating..."
+                                : isHebrew
+                                  ? "ניסיון חוזר"
+                                  : "Retry Workout"}
+                        </button>
+                    ) : null}
+                </div>
             )}
         </Link>
     );

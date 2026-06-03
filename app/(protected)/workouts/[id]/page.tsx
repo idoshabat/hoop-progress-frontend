@@ -4,12 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/app/lib/axios";
+import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
+import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
 import ProgressBar from "@/app/Components/ProgressBar";
 import WorkoutDetailsSkeleton from "@/app/Components/WorkoutDetailsSkeleton";
 import EmptyState from "@/app/Components/EmptyState";
 import ConfirmModal from "@/app/Components/ConfirmModal";
 import { Workout } from "@/app/types";
+import { createRetryWorkout } from "@/app/lib/retryWorkout";
 import {
     LineChart,
     Line,
@@ -24,13 +27,16 @@ import {
 export default function WorkoutDetailsPage() {
     const { id } = useParams();
     const router = useRouter();
+    const { user } = useAuth();
     const { isHebrew, language } = useLanguage();
+    const { showSuccess } = useSuccessFeedback();
 
     const [workout, setWorkout] = useState<Workout | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [retrying, setRetrying] = useState(false);
 
     const text = isHebrew
         ? {
@@ -58,6 +64,11 @@ export default function WorkoutDetailsPage() {
               noSessionsDescription: "תעד את הסשן הראשון שלך כדי להתחיל לעקוב אחרי ביצועים והתקדמות.",
               addFirstSession: "הוסף סשן ראשון",
               addSession: "הוסף סשן",
+              retryWorkout: "בצע ניסיון חוזר",
+              retryingWorkout: "יוצר ניסיון חוזר...",
+              retrySuccessTitle: "האימון נוצר מחדש",
+              retrySuccessMessage: "נוצר עבורך אימון חדש עם אותם היעדים והמבנה.",
+              failedRetryWorkout: "יצירת ניסיון חוזר לאימון נכשלה",
               shots: "זריקות",
               progressGraph: "גרף התקדמות",
               deleteWorkoutTitle: "למחוק את האימון?",
@@ -89,6 +100,11 @@ export default function WorkoutDetailsPage() {
               noSessionsDescription: "Log your first session to start tracking your performance and progress.",
               addFirstSession: "Add first session",
               addSession: "Add Session",
+              retryWorkout: "Retry Workout",
+              retryingWorkout: "Creating retry workout...",
+              retrySuccessTitle: "Workout recreated",
+              retrySuccessMessage: "A new workout was created for you with the same structure and goals.",
+              failedRetryWorkout: "Failed to create a retry workout",
               shots: "shots",
               progressGraph: "Progress Graph",
               deleteWorkoutTitle: "Delete workout?",
@@ -180,6 +196,25 @@ export default function WorkoutDetailsPage() {
         }
     };
 
+    const handleRetryWorkout = async () => {
+        if (!workout) return;
+
+        try {
+            setRetrying(true);
+            const recreatedWorkout = await createRetryWorkout(workout);
+            showSuccess({
+                title: text.retrySuccessTitle,
+                message: text.retrySuccessMessage,
+            });
+            router.push(`/workouts/${recreatedWorkout.id}`);
+        } catch (err) {
+            console.error(err);
+            alert(text.failedRetryWorkout);
+        } finally {
+            setRetrying(false);
+        }
+    };
+
 
 
     return (
@@ -205,8 +240,16 @@ export default function WorkoutDetailsPage() {
                         </Link>
                     )}
 
-
-
+                    {user?.role === "PLAYER" && workout.is_completed && (
+                        <button
+                            type="button"
+                            onClick={() => void handleRetryWorkout()}
+                            disabled={retrying}
+                            className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {retrying ? text.retryingWorkout : text.retryWorkout}
+                        </button>
+                    )}
 
                     <button
                         onClick={() => setShowDeleteModal(true)}

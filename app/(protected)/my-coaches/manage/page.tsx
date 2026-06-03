@@ -1,9 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/app/lib/axios";
+import PageHero from "@/app/Components/PageHero";
+import SectionSurface from "@/app/Components/SectionSurface";
+import StatCard from "@/app/Components/StatCard";
 import { useAuth } from "@/app/Context/AuthContext";
+import { useLanguage } from "@/app/Context/LanguageContext";
 import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
 import { CoachProfile, ConnectionRequest } from "@/app/types";
 
@@ -28,6 +32,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 export default function ManageCoachesPage() {
     const { user, loading: authLoading } = useAuth();
+    const { isHebrew, language } = useLanguage();
     const { showSuccess } = useSuccessFeedback();
     const [coaches, setCoaches] = useState<CoachProfile[]>([]);
     const [incomingRequests, setIncomingRequests] = useState<ConnectionRequest[]>([]);
@@ -42,7 +47,111 @@ export default function ManageCoachesPage() {
     const [searchMessage, setSearchMessage] = useState("");
     const [actionMessage, setActionMessage] = useState("");
 
-    const loadPageData = async () => {
+    const text = useMemo(
+        () =>
+            isHebrew
+                ? {
+                      failedLoad: "טעינת המאמנים נכשלה.",
+                      emptyUsername: "יש להזין שם משתמש של מאמן.",
+                      noSuchCoach: "לא נמצא מאמן כזה.",
+                      failedSearch: "חיפוש המאמן נכשל.",
+                      requestSentTitle: "הבקשה נשלחה",
+                      requestSentMessage: (username: string) => `בקשת החיבור אל ${username} נשלחה.`,
+                      failedRequest: "שליחת בקשת החיבור נכשלה.",
+                      coachRemovedTitle: "המאמן הוסר",
+                      coachRemovedMessage: (username: string) => `${username} הוסר בהצלחה.`,
+                      failedRemove: "הסרת המאמן נכשלה.",
+                      requestAcceptedTitle: "הבקשה אושרה",
+                      requestRejectedTitle: "הבקשה נדחתה",
+                      requestAcceptedMessage: "המאמן מחובר עכשיו לחשבון שלך.",
+                      requestRejectedMessage: "בקשת החיבור נדחתה.",
+                      failedUpdateRequest: "עדכון בקשת החיבור נכשל.",
+                      loading: "טוען ניהול מאמנים...",
+                      loginRequired: "יש להתחבר כדי לנהל מאמנים.",
+                      accessDenied: "אין גישה. לשחקנים בלבד.",
+                      title: "ניהול מאמנים",
+                      subtitle: "חפש מאמנים, נהל חיבורים קיימים וטפל בבקשות פתוחות בצורה מסודרת.",
+                      eyebrow: "אזור החיבורים",
+                      badge: "Coaches",
+                      backToCoaches: "חזרה למאמנים שלי",
+                      findCoach: "חיפוש מאמן",
+                      searchPlaceholder: "הכנס שם משתמש של מאמן",
+                      searching: "מחפש...",
+                      search: "חפש",
+                      dateOfBirth: "תאריך לידה",
+                      notAvailable: "לא זמין",
+                      saving: "שומר...",
+                      removeCoach: "הסר מאמן",
+                      acceptRequest: "אשר בקשה",
+                      rejectRequest: "דחה בקשה",
+                      requestPending: "הבקשה כבר נשלחה. ממתין לתגובה.",
+                      sending: "שולח...",
+                      sendRequest: "שלח בקשה",
+                      incomingRequests: "בקשות נכנסות",
+                      noIncomingRequests: "אין בקשות נכנסות.",
+                      outgoingRequests: "בקשות יוצאות",
+                      noOutgoingRequests: "אין בקשות יוצאות.",
+                      sentOn: "נשלח בתאריך",
+                      waitingForResponse: "ממתין לתגובה.",
+                      totalCoaches: "מאמנים מחוברים",
+                      pendingIncoming: "נכנסות פתוחות",
+                      pendingOutgoing: "יוצאות פתוחות",
+                      coachLibrary: "ספריית מאמנים",
+                      coachLibraryDescription: "מצא מאמן חדש או נהל מצב חיבור קיים ממקום אחד.",
+                  }
+                : {
+                      failedLoad: "Failed to load coaches.",
+                      emptyUsername: "Please enter a coach username.",
+                      noSuchCoach: "No such coach.",
+                      failedSearch: "Failed to search for coach.",
+                      requestSentTitle: "Request Sent",
+                      requestSentMessage: (username: string) => `Your connection request to ${username} was sent.`,
+                      failedRequest: "Failed to send connection request.",
+                      coachRemovedTitle: "Coach Removed",
+                      coachRemovedMessage: (username: string) => `${username} was removed successfully.`,
+                      failedRemove: "Failed to remove coach.",
+                      requestAcceptedTitle: "Request Accepted",
+                      requestRejectedTitle: "Request Rejected",
+                      requestAcceptedMessage: "The coach is now connected to your account.",
+                      requestRejectedMessage: "The connection request was rejected.",
+                      failedUpdateRequest: "Failed to update connection request.",
+                      loading: "Loading coach management...",
+                      loginRequired: "Please log in to manage coaches.",
+                      accessDenied: "Access denied. Players only.",
+                      title: "Manage Coaches",
+                      subtitle: "Search for coaches, manage current connections, and handle open requests in one organized space.",
+                      eyebrow: "Connection Space",
+                      badge: "Coaches",
+                      backToCoaches: "Back to My Coaches",
+                      findCoach: "Find a Coach",
+                      searchPlaceholder: "Enter coach username",
+                      searching: "Searching...",
+                      search: "Search",
+                      dateOfBirth: "Date of birth",
+                      notAvailable: "N/A",
+                      saving: "Saving...",
+                      removeCoach: "Remove coach",
+                      acceptRequest: "Accept request",
+                      rejectRequest: "Reject request",
+                      requestPending: "Request already sent. Waiting for response.",
+                      sending: "Sending...",
+                      sendRequest: "Send request",
+                      incomingRequests: "Incoming Requests",
+                      noIncomingRequests: "No incoming requests.",
+                      outgoingRequests: "Outgoing Requests",
+                      noOutgoingRequests: "No outgoing requests.",
+                      sentOn: "Sent on",
+                      waitingForResponse: "Waiting for response.",
+                      totalCoaches: "Connected Coaches",
+                      pendingIncoming: "Open Incoming",
+                      pendingOutgoing: "Open Outgoing",
+                      coachLibrary: "Coach Library",
+                      coachLibraryDescription: "Find a new coach or manage an existing connection from one place.",
+                  },
+        [isHebrew]
+    );
+
+    const loadPageData = useCallback(async () => {
         try {
             const [playerRes, incomingRes, outgoingRes] = await Promise.all([
                 api.get("me/"),
@@ -57,9 +166,9 @@ export default function ManageCoachesPage() {
             setOutgoingRequests(outgoingRes.data || []);
         } catch (err) {
             console.error(err);
-            setError("Failed to load coaches.");
+            setError(text.failedLoad);
         }
-    };
+    }, [text.failedLoad]);
 
     useEffect(() => {
         if (authLoading || !user) return;
@@ -72,8 +181,8 @@ export default function ManageCoachesPage() {
             }
         };
 
-        load();
-    }, [authLoading, user]);
+        void load();
+    }, [authLoading, loadPageData, user]);
 
     const handleSearch = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -81,7 +190,7 @@ export default function ManageCoachesPage() {
         const trimmedUsername = searchUsername.trim();
         if (!trimmedUsername) {
             setSearchedCoach(null);
-            setSearchMessage("Please enter a coach username.");
+            setSearchMessage(text.emptyUsername);
             return;
         }
 
@@ -98,7 +207,7 @@ export default function ManageCoachesPage() {
 
             if (!coach) {
                 setSearchedCoach(null);
-                setSearchMessage("No such coach.");
+                setSearchMessage(text.noSuchCoach);
                 return;
             }
 
@@ -117,8 +226,8 @@ export default function ManageCoachesPage() {
                     ? err.response.status
                     : undefined;
 
-            if (status === 404) setSearchMessage("No such coach.");
-            else setSearchMessage("Failed to search for coach.");
+            if (status === 404) setSearchMessage(text.noSuchCoach);
+            else setSearchMessage(text.failedSearch);
         } finally {
             setSearching(false);
         }
@@ -133,12 +242,12 @@ export default function ManageCoachesPage() {
             await api.post("add-coach-to-player/", { coach_id: searchedCoach.id });
             await loadPageData();
             showSuccess({
-                title: "Request Sent",
-                message: `Your connection request to ${searchedCoach.username} was sent.`,
+                title: text.requestSentTitle,
+                message: text.requestSentMessage(searchedCoach.username),
             });
         } catch (err) {
             console.error(err);
-            setActionMessage(getErrorMessage(err, "Failed to send connection request."));
+            setActionMessage(getErrorMessage(err, text.failedRequest));
         } finally {
             setUpdatingCoach(false);
         }
@@ -153,12 +262,12 @@ export default function ManageCoachesPage() {
             await api.post("remove-coach-from-player/", { coach_id: searchedCoach.id });
             await loadPageData();
             showSuccess({
-                title: "Coach Removed",
-                message: `${searchedCoach.username} was removed successfully.`,
+                title: text.coachRemovedTitle,
+                message: text.coachRemovedMessage(searchedCoach.username),
             });
         } catch (err) {
             console.error(err);
-            setActionMessage(getErrorMessage(err, "Failed to remove coach."));
+            setActionMessage(getErrorMessage(err, text.failedRemove));
         } finally {
             setUpdatingCoach(false);
         }
@@ -171,25 +280,23 @@ export default function ManageCoachesPage() {
             await api.post(`connection-requests/${requestId}/respond/`, { action });
             await loadPageData();
             showSuccess({
-                title: action === "accept" ? "Request Accepted" : "Request Rejected",
-                message:
-                    action === "accept"
-                        ? "The coach is now connected to your account."
-                        : "The connection request was rejected.",
+                title: action === "accept" ? text.requestAcceptedTitle : text.requestRejectedTitle,
+                message: action === "accept" ? text.requestAcceptedMessage : text.requestRejectedMessage,
             });
         } catch (err) {
             console.error(err);
-            setActionMessage(getErrorMessage(err, "Failed to update connection request."));
+            setActionMessage(getErrorMessage(err, text.failedUpdateRequest));
         } finally {
             setRespondingRequestId(null);
         }
     };
 
-    if (authLoading || loading) return <p className="p-6">Loading coach management...</p>;
-    if (!user) return <p className="p-6">Please log in to manage coaches.</p>;
-    if (user.role !== "PLAYER") return <p className="p-6 text-red-500">Access denied. Players only.</p>;
+    if (authLoading || loading) return <p className="p-6">{text.loading}</p>;
+    if (!user) return <p className="p-6">{text.loginRequired}</p>;
+    if (user.role !== "PLAYER") return <p className="p-6 text-red-500">{text.accessDenied}</p>;
     if (error) return <p className="p-6 text-red-500">{error}</p>;
 
+    const locale = language === "he" ? "he-IL" : "en-US";
     const isCurrentCoach = searchedCoach ? coaches.some((coach) => coach.id === searchedCoach.id) : false;
     const incomingRequestForSearchedCoach = searchedCoach
         ? incomingRequests.find((request) => request.sender.id === searchedCoach.id)
@@ -199,151 +306,189 @@ export default function ManageCoachesPage() {
         : undefined;
 
     return (
-        <div className="container mx-auto space-y-8 px-4 py-10">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <h1 className="mb-2 text-3xl font-bold">Manage Coaches</h1>
-                    <p className="text-gray-500">Search for coaches and manage incoming or outgoing requests.</p>
+        <div className="mx-auto max-w-6xl space-y-8 px-4 py-10">
+            <PageHero
+                eyebrow={text.eyebrow}
+                title={text.title}
+                description={text.subtitle}
+                badge={text.badge}
+                action={
+                    <Link
+                        href="/my-coaches"
+                        className="rounded-2xl bg-amber-500 px-6 py-3 font-semibold text-zinc-950 shadow-[0_12px_30px_rgba(245,158,11,0.2)] transition hover:bg-amber-400"
+                    >
+                        {text.backToCoaches}
+                    </Link>
+                }
+            >
+                <div className="grid gap-4 md:grid-cols-3">
+                    <StatCard label={text.totalCoaches} value={coaches.length} />
+                    <StatCard label={text.pendingIncoming} value={incomingRequests.length} accent />
+                    <StatCard label={text.pendingOutgoing} value={outgoingRequests.length} />
                 </div>
-                <Link href="/my-coaches" className="text-amber-300 hover:text-amber-200 hover:underline">Back to My Coaches</Link>
-            </div>
+            </PageHero>
 
-            <section className="rounded-lg border border-gray-200 p-5">
-                <h2 className="mb-4 text-xl font-semibold">Find a Coach</h2>
+            <SectionSurface
+                title={text.findCoach}
+                description={text.coachLibraryDescription}
+            >
                 <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
                     <input
                         type="text"
                         value={searchUsername}
                         onChange={(e) => setSearchUsername(e.target.value)}
-                        placeholder="Enter coach username"
-                        className="flex-1 rounded border border-gray-300 p-3"
+                        placeholder={text.searchPlaceholder}
+                        className="flex-1 rounded-2xl border border-zinc-700 bg-zinc-950 p-3 text-stone-100"
                     />
                     <button
                         type="submit"
                         disabled={searching}
-                        className="rounded bg-amber-500 px-4 py-3 text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                        className="rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
                     >
-                        {searching ? "Searching..." : "Search"}
+                        {searching ? text.searching : text.search}
                     </button>
                 </form>
 
-                {searchMessage && <p className="mt-3 text-sm text-red-500">{searchMessage}</p>}
-                {actionMessage && <p className="mt-3 text-sm text-red-500">{actionMessage}</p>}
+                {searchMessage && <p className="mt-3 text-sm text-red-400">{searchMessage}</p>}
+                {actionMessage && <p className="mt-3 text-sm text-red-400">{actionMessage}</p>}
 
-                {searchedCoach && (
-                    <div className="mt-5 rounded-lg border border-gray-200 p-4">
+                {searchedCoach ? (
+                    <div className="mt-6 rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.2)]">
                         <Link
                             href={`/coach-profile/${searchedCoach.id}`}
-                            className="text-lg font-bold text-stone-100 hover:text-amber-300"
+                            className="text-xl font-bold text-stone-100 hover:text-amber-300"
                         >
                             {searchedCoach.username}
                         </Link>
-                        <p className="mt-1 text-gray-500">Date of birth: {searchedCoach.date_of_birth || "N/A"}</p>
+                        <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+                            <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.dateOfBirth}</p>
+                            <p className="mt-2 font-medium text-stone-200">
+                                {searchedCoach.date_of_birth || text.notAvailable}
+                            </p>
+                        </div>
 
                         {isCurrentCoach ? (
                             <button
                                 type="button"
                                 disabled={updatingCoach}
                                 onClick={handleRemoveCoach}
-                                className="mt-4 rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
+                                className="mt-5 rounded-2xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
                             >
-                                {updatingCoach ? "Saving..." : "Remove coach"}
+                                {updatingCoach ? text.saving : text.removeCoach}
                             </button>
                         ) : incomingRequestForSearchedCoach ? (
-                            <div className="mt-4 flex flex-wrap gap-3">
+                            <div className="mt-5 flex flex-wrap gap-3">
                                 <button
                                     type="button"
                                     disabled={respondingRequestId === incomingRequestForSearchedCoach.id}
                                     onClick={() => handleRespondToRequest(incomingRequestForSearchedCoach.id, "accept")}
-                                    className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+                                    className="rounded-2xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
                                 >
-                                    {respondingRequestId === incomingRequestForSearchedCoach.id ? "Saving..." : "Accept request"}
+                                    {respondingRequestId === incomingRequestForSearchedCoach.id ? text.saving : text.acceptRequest}
                                 </button>
                                 <button
                                     type="button"
                                     disabled={respondingRequestId === incomingRequestForSearchedCoach.id}
                                     onClick={() => handleRespondToRequest(incomingRequestForSearchedCoach.id, "reject")}
-                                    className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700 disabled:opacity-50"
+                                    className="rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-3 font-semibold text-stone-200 transition hover:bg-zinc-800 disabled:opacity-50"
                                 >
-                                    {respondingRequestId === incomingRequestForSearchedCoach.id ? "Saving..." : "Reject request"}
+                                    {respondingRequestId === incomingRequestForSearchedCoach.id ? text.saving : text.rejectRequest}
                                 </button>
                             </div>
                         ) : outgoingRequestForSearchedCoach ? (
-                            <p className="mt-4 text-sm font-medium text-amber-600">Request already sent. Waiting for response.</p>
+                            <p className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm font-medium text-amber-300">
+                                {text.requestPending}
+                            </p>
                         ) : (
                             <button
                                 type="button"
                                 disabled={updatingCoach}
                                 onClick={handleCoachRequest}
-                                className="mt-4 rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+                                className="mt-5 rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
                             >
-                                {updatingCoach ? "Sending..." : "Send request"}
+                                {updatingCoach ? text.sending : text.sendRequest}
                             </button>
                         )}
                     </div>
-                )}
-            </section>
+                ) : null}
+            </SectionSurface>
 
-            <section className="rounded-lg border border-gray-200 p-5">
-                <h2 className="mb-4 text-2xl font-semibold">Incoming Requests</h2>
-                {incomingRequests.length === 0 ? (
-                    <p className="text-gray-500">No incoming requests.</p>
-                ) : (
-                    <ul className="space-y-4">
-                        {incomingRequests.map((request) => (
-                            <li key={request.id} className="rounded-lg border border-gray-200 p-4">
-                                <Link
-                                    href={`/coach-profile/${request.sender.id}`}
-                                    className="text-lg font-bold text-stone-100 hover:text-amber-300"
+            <div className="grid gap-8 xl:grid-cols-2">
+                <SectionSurface title={text.incomingRequests}>
+                    {incomingRequests.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-4 py-5 text-stone-500">
+                            {text.noIncomingRequests}
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {incomingRequests.map((request) => (
+                                <div
+                                    key={request.id}
+                                    className="rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5"
                                 >
-                                    {request.sender_username}
-                                </Link>
-                                <p className="mt-1 text-gray-500">Sent on {new Date(request.created_at).toLocaleString()}</p>
-                                <div className="mt-4 flex flex-wrap gap-3">
-                                    <button
-                                        type="button"
-                                        disabled={respondingRequestId === request.id}
-                                        onClick={() => handleRespondToRequest(request.id, "accept")}
-                                        className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+                                    <Link
+                                        href={`/coach-profile/${request.sender.id}`}
+                                        className="text-lg font-bold text-stone-100 hover:text-amber-300"
                                     >
-                                        {respondingRequestId === request.id ? "Saving..." : "Accept"}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={respondingRequestId === request.id}
-                                        onClick={() => handleRespondToRequest(request.id, "reject")}
-                                        className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700 disabled:opacity-50"
-                                    >
-                                        {respondingRequestId === request.id ? "Saving..." : "Reject"}
-                                    </button>
+                                        {request.sender_username}
+                                    </Link>
+                                    <p className="mt-2 text-sm text-stone-500">
+                                        {text.sentOn} {new Date(request.created_at).toLocaleString(locale)}
+                                    </p>
+                                    <div className="mt-4 flex flex-wrap gap-3">
+                                        <button
+                                            type="button"
+                                            disabled={respondingRequestId === request.id}
+                                            onClick={() => handleRespondToRequest(request.id, "accept")}
+                                            className="rounded-2xl bg-emerald-600 px-4 py-2.5 font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                                        >
+                                            {respondingRequestId === request.id ? text.saving : text.acceptRequest}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={respondingRequestId === request.id}
+                                            onClick={() => handleRespondToRequest(request.id, "reject")}
+                                            className="rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 font-semibold text-stone-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                                        >
+                                            {respondingRequestId === request.id ? text.saving : text.rejectRequest}
+                                        </button>
+                                    </div>
                                 </div>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </section>
+                            ))}
+                        </div>
+                    )}
+                </SectionSurface>
 
-            <section className="rounded-lg border border-gray-200 p-5">
-                <h2 className="mb-4 text-2xl font-semibold">Outgoing Requests</h2>
-                {outgoingRequests.length === 0 ? (
-                    <p className="text-gray-500">No outgoing requests.</p>
-                ) : (
-                    <ul className="space-y-4">
-                        {outgoingRequests.map((request) => (
-                            <li key={request.id} className="rounded-lg border border-gray-200 p-4">
-                                <Link
-                                    href={`/coach-profile/${request.receiver.id}`}
-                                    className="text-lg font-bold text-stone-100 hover:text-amber-300"
+                <SectionSurface title={text.outgoingRequests}>
+                    {outgoingRequests.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-4 py-5 text-stone-500">
+                            {text.noOutgoingRequests}
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {outgoingRequests.map((request) => (
+                                <div
+                                    key={request.id}
+                                    className="rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5"
                                 >
-                                    {request.receiver_username}
-                                </Link>
-                                <p className="mt-1 text-gray-500">Sent on {new Date(request.created_at).toLocaleString()}</p>
-                                <p className="mt-2 text-sm font-medium text-amber-600">Waiting for response.</p>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </section>
+                                    <Link
+                                        href={`/coach-profile/${request.receiver.id}`}
+                                        className="text-lg font-bold text-stone-100 hover:text-amber-300"
+                                    >
+                                        {request.receiver_username}
+                                    </Link>
+                                    <p className="mt-2 text-sm text-stone-500">
+                                        {text.sentOn} {new Date(request.created_at).toLocaleString(locale)}
+                                    </p>
+                                    <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm font-medium text-amber-300">
+                                        {text.waitingForResponse}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </SectionSurface>
+            </div>
         </div>
     );
 }

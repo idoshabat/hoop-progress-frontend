@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/app/Context/LanguageContext';
 import type { Notification } from '@/app/types';
@@ -11,7 +11,7 @@ interface NotificationDropdownProps {
   onClose: () => void;
 }
 
-const getNotificationIcon = (type: string) => {
+function getNotificationIcon(type: string) {
   switch (type) {
     case 'WORKOUT_ASSIGNED':
       return '📋';
@@ -26,9 +26,9 @@ const getNotificationIcon = (type: string) => {
     default:
       return '📢';
   }
-};
+}
 
-const getNotificationLink = (notification: Notification) => {
+function getNotificationLink(notification: Notification) {
   switch (notification.notification_type) {
     case 'WORKOUT_ASSIGNED':
     case 'WORKOUT_COMPLETED':
@@ -40,14 +40,52 @@ const getNotificationLink = (notification: Notification) => {
     default:
       return '#';
   }
-};
+}
+
+function formatTime(dateString: string, locale: string, isHebrew: boolean): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return isHebrew ? 'כרגע' : 'just now';
+  if (diffMins < 60) return isHebrew ? `לפני ${diffMins} דק׳` : `${diffMins}m ago`;
+  if (diffHours < 24) return isHebrew ? `לפני ${diffHours} שעות` : `${diffHours}h ago`;
+  if (diffDays < 7) return isHebrew ? `לפני ${diffDays} ימים` : `${diffDays}d ago`;
+
+  return date.toLocaleDateString(locale);
+}
 
 export default function NotificationDropdown({
   notifications,
   onMarkAsRead,
   onClose,
 }: NotificationDropdownProps) {
-  const { isHebrew } = useLanguage();
+  const { isHebrew, language } = useLanguage();
+
+  const text = useMemo(
+    () =>
+      isHebrew
+        ? {
+            title: 'התראות',
+            empty: 'אין התראות עדיין',
+            unread: 'חדש',
+            markRead: 'סמן כנקרא',
+            viewAll: 'לכל ההתראות',
+          }
+        : {
+            title: 'Notifications',
+            empty: 'No notifications yet',
+            unread: 'New',
+            markRead: 'Mark as read',
+            viewAll: 'View all notifications',
+          },
+    [isHebrew]
+  );
+
+  const locale = language === 'he' ? 'he-IL' : 'en-US';
 
   const handleMarkAsRead = async (e: React.MouseEvent, notificationId: number) => {
     e.stopPropagation();
@@ -62,108 +100,94 @@ export default function NotificationDropdown({
 
   return (
     <>
-      {/* Overlay to close dropdown on outside click */}
-      <div
-        className="fixed inset-0 z-40"
-        onClick={handleOutsideClick}
-      />
+      <div className="fixed inset-0 z-40" onClick={handleOutsideClick} />
 
-      {/* Dropdown Panel */}
       <div
-        className={`absolute mt-2 z-50 max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-2xl w-[min(20rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] ${
-          isHebrew ? "left-0" : "right-0"
+        className={`absolute z-50 mt-2 w-[min(24rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] overflow-hidden rounded-[1.5rem] border border-zinc-800 bg-zinc-950 shadow-[0_24px_60px_rgba(0,0,0,0.45)] ${
+          isHebrew ? 'left-0' : 'right-0'
         }`}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
+        <div className="border-b border-zinc-800 bg-linear-to-r from-zinc-950 to-zinc-900 px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold text-stone-100">{text.title}</h3>
+              <p className="mt-1 text-xs uppercase tracking-[0.24em] text-amber-300/70">
+                {notifications.length} items
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-full border border-zinc-700 px-3 py-1 text-stone-400 transition hover:text-stone-200"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
-        {/* Notifications List */}
         {notifications.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <p>No notifications yet</p>
-          </div>
+          <div className="px-6 py-10 text-center text-stone-500">{text.empty}</div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="max-h-96 overflow-y-auto">
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
-                  !notification.is_read ? 'bg-blue-50' : ''
+                className={`border-b border-zinc-800/80 px-4 py-4 transition hover:bg-zinc-900/70 ${
+                  notification.is_read ? 'bg-transparent' : 'bg-amber-500/6'
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="text-2xl flex-shrink-0">
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-2xl">
                     {getNotificationIcon(notification.notification_type)}
                   </div>
 
                   <Link
                     href={getNotificationLink(notification)}
                     onClick={onClose}
-                    className="block flex-1 min-w-0"
+                    className="block min-w-0 flex-1"
                   >
-                    <p className="font-semibold text-gray-900 text-sm">
-                      {notification.title}
-                    </p>
-                    <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-stone-100">{notification.title}</p>
+                      {!notification.is_read ? (
+                        <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-300">
+                          {text.unread}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-sm text-stone-400">
                       {notification.message}
                     </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {formatTime(notification.created_at)}
+                    <p className="mt-2 text-xs text-stone-500">
+                      {formatTime(notification.created_at, locale, isHebrew)}
                     </p>
                   </Link>
 
-                  {!notification.is_read && (
+                  {!notification.is_read ? (
                     <button
                       onClick={(e) => void handleMarkAsRead(e, notification.id)}
-                      className="text-blue-600 hover:text-blue-800 text-xl font-bold flex-shrink-0"
-                      title="Mark as read"
+                      className="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-medium text-stone-300 transition hover:text-stone-100"
+                      title={text.markRead}
                     >
-                      ●
+                      {text.markRead}
                     </button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Footer - View All Link */}
-        {notifications.length > 0 && (
-          <div className="border-t border-gray-200 p-3 text-center bg-gray-50">
+        {notifications.length > 0 ? (
+          <div className="border-t border-zinc-800 bg-zinc-900/80 p-3 text-center">
             <Link
               href="/notifications"
               onClick={onClose}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              className="text-sm font-medium text-amber-300 transition hover:text-amber-200"
             >
-              View all notifications
+              {text.viewAll}
             </Link>
           </div>
-        )}
+        ) : null}
       </div>
     </>
   );
-}
-
-function formatTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString();
 }

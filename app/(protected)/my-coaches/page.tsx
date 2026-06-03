@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
+import EmptyState from "@/app/Components/EmptyState";
+import PageHero from "@/app/Components/PageHero";
 import PendingRequestsBanner from "@/app/Components/PendingRequestsBanner";
+import SectionSurface from "@/app/Components/SectionSurface";
+import StatCard from "@/app/Components/StatCard";
 import { CoachProfile } from "@/app/types";
 
 export default function MyCoachesPage() {
@@ -23,12 +27,21 @@ export default function MyCoachesPage() {
               accessDenied: "אין גישה. לשחקנים בלבד.",
               title: "המאמנים שלי",
               subtitle: "המאמנים הנוכחיים שלך והאימונים שהם הקצו לך.",
+              heroEyebrow: "רשת התמיכה שלך",
               manage: "ניהול מאמנים",
               current: "מאמנים נוכחיים",
-              empty: "עדיין לא הוקצו מאמנים.",
+              currentDescription: "גישה מהירה לכל מאמן, לפרופיל שלו ולאימונים שהוא הקצה לך.",
+              emptyEyebrow: "אזור המאמנים",
+              emptyTitle: "עדיין אין מאמנים מחוברים",
+              emptyDescription:
+                  "ברגע שמאמנים יתחברו אליך, תראה כאן את כל הקשרים הפעילים שלך ואת הגישה המהירה לאימונים שהוקצו.",
               dob: "תאריך לידה",
               unavailable: "לא זמין",
               viewWorkouts: "צפה באימונים שהוקצו",
+              totalCoaches: "מאמנים מחוברים",
+              completeProfiles: "פרופילים מלאים",
+              birthdaysKnown: "תאריכי לידה זמינים",
+              badge: "Coaches",
           }
         : {
               failed: "Failed to load coaches.",
@@ -37,13 +50,27 @@ export default function MyCoachesPage() {
               accessDenied: "Access denied. Players only.",
               title: "My Coaches",
               subtitle: "Your current coaches and the workouts they assigned to you.",
+              heroEyebrow: "Your Support Network",
               manage: "Manage Coaches",
               current: "Current Coaches",
-              empty: "No coaches assigned yet.",
+              currentDescription: "Fast access to every coach, their profile, and the workouts they assigned to you.",
+              emptyEyebrow: "Coach Space",
+              emptyTitle: "No coaches connected yet",
+              emptyDescription:
+                  "Once coaches connect with you, you'll see your active network here together with quick access to assigned workouts.",
               dob: "Date of birth",
               unavailable: "N/A",
               viewWorkouts: "View assigned workouts",
+              totalCoaches: "Connected Coaches",
+              completeProfiles: "Completed Profiles",
+              birthdaysKnown: "Birthdays Known",
+              badge: "Coaches",
           };
+
+    const completeProfiles = useMemo(
+        () => coaches.filter((coach) => Boolean(coach.date_of_birth)).length,
+        [coaches]
+    );
 
     const loadCoaches = useCallback(async () => {
         try {
@@ -79,49 +106,84 @@ export default function MyCoachesPage() {
     }
 
     return (
-        <div className="container mx-auto space-y-8 px-4 py-10">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <h1 className="mb-2 text-3xl font-bold">{text.title}</h1>
-                    <p className="text-gray-500">
-                        {text.subtitle}
-                    </p>
+        <div className="mx-auto max-w-6xl space-y-8 px-4 py-10">
+            <PageHero
+                eyebrow={text.heroEyebrow}
+                title={text.title}
+                description={text.subtitle}
+                badge={text.badge}
+                action={
+                    <Link
+                        href="/my-coaches/manage"
+                        className="rounded-2xl bg-amber-500 px-6 py-3 font-semibold text-zinc-950 shadow-[0_12px_30px_rgba(245,158,11,0.2)] transition hover:bg-amber-400"
+                    >
+                        {text.manage}
+                    </Link>
+                }
+            >
+                <div className="grid gap-4 md:grid-cols-3">
+                    <StatCard label={text.totalCoaches} value={coaches.length} />
+                    <StatCard label={text.completeProfiles} value={completeProfiles} accent />
+                    <StatCard label={text.birthdaysKnown} value={completeProfiles} />
                 </div>
-
-                <Link
-                    href="/my-coaches/manage"
-                    className="rounded bg-amber-500 px-4 py-2 text-zinc-950 hover:bg-amber-400"
-                >
-                    {text.manage}
-                </Link>
-            </div>
+            </PageHero>
 
             <PendingRequestsBanner />
 
-            <section>
-                <h2 className="mb-4 text-2xl font-semibold">{text.current}</h2>
-
+            <SectionSurface
+                title={text.current}
+                description={text.currentDescription}
+                action={
+                    coaches.length > 0 ? (
+                        <Link
+                            href="/my-coaches/manage"
+                            className="rounded-full border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm font-medium text-stone-300 transition hover:text-stone-100"
+                        >
+                            {text.manage}
+                        </Link>
+                    ) : null
+                }
+            >
                 {coaches.length === 0 ? (
-                    <p className="text-gray-500">{text.empty}</p>
+                    <EmptyState
+                        eyebrow={text.emptyEyebrow}
+                        icon="🧑‍🏫"
+                        title={text.emptyTitle}
+                        description={text.emptyDescription}
+                        actionLabel={text.manage}
+                        actionHref="/my-coaches/manage"
+                    />
                 ) : (
-                    <ul className="space-y-4">
+                    <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         {coaches.map((coach) => (
                             <li
                                 key={coach.id}
-                                className="rounded-lg border border-gray-200 p-4"
+                                className="rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.2)]"
                             >
-                                <Link
-                                    href={`/coach-profile/${coach.id}`}
-                                    className="text-xl font-bold text-stone-100 hover:text-amber-300"
-                                >
-                                    {coach.username}
-                                </Link>
-                                <p className="mt-1 text-gray-500">
-                                    {text.dob}: {coach.date_of_birth || text.unavailable}
-                                </p>
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <Link
+                                            href={`/coach-profile/${coach.id}`}
+                                            className="text-xl font-bold text-stone-100 hover:text-amber-300"
+                                        >
+                                            {coach.username}
+                                        </Link>
+                                        <p className="mt-2 inline-flex rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300">
+                                            {text.title}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+                                    <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.dob}</p>
+                                    <p className="mt-2 font-medium text-stone-200">
+                                        {coach.date_of_birth || text.unavailable}
+                                    </p>
+                                </div>
+
                                 <Link
                                     href={`/my-coaches/${coach.id}`}
-                                    className="mt-4 inline-block text-amber-300 hover:text-amber-200 hover:underline"
+                                    className="mt-5 inline-flex items-center rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-400"
                                 >
                                     {text.viewWorkouts}
                                 </Link>
@@ -129,7 +191,7 @@ export default function MyCoachesPage() {
                         ))}
                     </ul>
                 )}
-            </section>
+            </SectionSurface>
         </div>
     );
 }

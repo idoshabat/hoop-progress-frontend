@@ -1,12 +1,86 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useNotifications } from '@/app/hooks/useNotifications';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import EmptyState from '@/app/Components/EmptyState';
+import PageHero from '@/app/Components/PageHero';
+import SectionSurface from '@/app/Components/SectionSurface';
+import StatCard from '@/app/Components/StatCard';
+import { useLanguage } from '@/app/Context/LanguageContext';
+import { useNotifications } from '@/app/hooks/useNotifications';
 import type { Notification } from '@/app/types';
 
+function getNotificationIcon(type: string) {
+  switch (type) {
+    case 'WORKOUT_ASSIGNED':
+      return '📋';
+    case 'WORKOUT_COMPLETED':
+      return '✅';
+    case 'SESSION_ADDED':
+      return '🏀';
+    case 'CONNECTION_ACCEPTED':
+      return '👥';
+    case 'CONNECTION_REQUESTED':
+      return '🤝';
+    default:
+      return '📢';
+  }
+}
+
+function getNotificationLink(notification: Notification) {
+  switch (notification.notification_type) {
+    case 'WORKOUT_ASSIGNED':
+    case 'WORKOUT_COMPLETED':
+    case 'SESSION_ADDED':
+      return `/workouts/${notification.related_workout}`;
+    case 'CONNECTION_ACCEPTED':
+    case 'CONNECTION_REQUESTED':
+      return '/my-coaches';
+    default:
+      return '#';
+  }
+}
+
+function getNotificationTone(type: string) {
+  switch (type) {
+    case 'WORKOUT_ASSIGNED':
+      return 'bg-amber-500/10 text-amber-300 border-amber-500/20';
+    case 'WORKOUT_COMPLETED':
+      return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
+    case 'SESSION_ADDED':
+      return 'bg-sky-500/10 text-sky-300 border-sky-500/20';
+    case 'CONNECTION_ACCEPTED':
+    case 'CONNECTION_REQUESTED':
+      return 'bg-violet-500/10 text-violet-300 border-violet-500/20';
+    default:
+      return 'bg-zinc-800 text-stone-300 border-zinc-700';
+  }
+}
+
+function formatTime(dateString: string, locale: string, isHebrew: boolean): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return isHebrew ? 'כרגע' : 'just now';
+  if (diffMins < 60) return isHebrew ? `לפני ${diffMins} דק׳` : `${diffMins} minutes ago`;
+  if (diffHours < 24) return isHebrew ? `לפני ${diffHours} שעות` : `${diffHours} hours ago`;
+  if (diffDays < 7) return isHebrew ? `לפני ${diffDays} ימים` : `${diffDays} days ago`;
+
+  return date.toLocaleDateString(locale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function NotificationsPage() {
+  const { isHebrew, language } = useLanguage();
   const {
     notifications,
     markAsRead,
@@ -15,6 +89,48 @@ export default function NotificationsPage() {
     isLoading,
   } = useNotifications();
   const [loading, setLoading] = useState(true);
+
+  const text = useMemo(
+    () =>
+      isHebrew
+        ? {
+            title: 'התראות',
+            subtitle: 'כל הפעילות החשובה שלך מרוכזת כאן: אימונים, סשנים, חיבורים ועדכונים.',
+            eyebrow: 'מרכז הפעילות',
+            badge: 'Inbox',
+            unread: 'לא נקראו',
+            total: 'סה"כ התראות',
+            read: 'נקראו',
+            markAll: 'סמן הכול כנקרא',
+            markOne: 'סמן כנקרא',
+            view: 'פתח',
+            refreshing: 'מרענן התראות...',
+            loading: 'טוען התראות...',
+            emptyEyebrow: 'פיד פעילות',
+            emptyTitle: 'עדיין אין התראות',
+            emptyDescription:
+              'כאן יופיעו עדכונים כשמאמנים יקצו אימונים, שחקנים ישלימו סשנים או כשיהיו בקשות חיבור.',
+          }
+        : {
+            title: 'Notifications',
+            subtitle: 'All of your important activity lives here: workouts, sessions, connections, and updates.',
+            eyebrow: 'Activity Center',
+            badge: 'Inbox',
+            unread: 'Unread',
+            total: 'Total Notifications',
+            read: 'Read',
+            markAll: 'Mark all as read',
+            markOne: 'Mark as read',
+            view: 'Open',
+            refreshing: 'Refreshing notifications...',
+            loading: 'Loading notifications...',
+            emptyEyebrow: 'Activity Feed',
+            emptyTitle: 'No notifications yet',
+            emptyDescription:
+              "You'll see updates here when coaches assign workouts, players complete sessions, or connection requests happen.",
+          },
+    [isHebrew]
+  );
 
   useEffect(() => {
     const loadNotifications = async () => {
@@ -25,129 +141,134 @@ export default function NotificationsPage() {
     void loadNotifications();
   }, [fetchNotifications]);
 
-  const handleMarkAsRead = async (notificationId: number) => {
-    await markAsRead(notificationId);
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'WORKOUT_ASSIGNED':
-        return '📋';
-      case 'WORKOUT_COMPLETED':
-        return '✅';
-      case 'SESSION_ADDED':
-        return '🏀';
-      case 'CONNECTION_ACCEPTED':
-        return '👥';
-      case 'CONNECTION_REQUESTED':
-        return '🤝';
-      default:
-        return '📢';
-    }
-  };
-
-  const getNotificationLink = (notification: Notification) => {
-    switch (notification.notification_type) {
-      case 'WORKOUT_ASSIGNED':
-      case 'WORKOUT_COMPLETED':
-      case 'SESSION_ADDED':
-        return `/workouts/${notification.related_workout}`;
-      case 'CONNECTION_ACCEPTED':
-      case 'CONNECTION_REQUESTED':
-        return '/my-coaches';
-      default:
-        return '#';
-    }
-  };
+  const unreadCount = notifications.filter((notification) => !notification.is_read).length;
+  const readCount = notifications.length - unreadCount;
+  const locale = language === 'he' ? 'he-IL' : 'en-US';
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Notifications</h1>
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading notifications...</p>
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <PageHero
+          eyebrow={text.eyebrow}
+          title={text.title}
+          description={text.subtitle}
+          badge={text.badge}
+        >
+          <div className="grid gap-4 md:grid-cols-3">
+            <StatCard label={text.total} value="..." />
+            <StatCard label={text.unread} value="..." accent />
+            <StatCard label={text.read} value="..." />
           </div>
+        </PageHero>
+        <div className="mt-8 rounded-[1.75rem] border border-zinc-800 bg-zinc-950/70 px-6 py-14 text-center shadow-[0_16px_50px_rgba(0,0,0,0.22)]">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-amber-500" />
+          <p className="mt-4 text-stone-400">{text.loading}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-          {notifications.some((notification) => !notification.is_read) && (
+    <div className="mx-auto max-w-6xl space-y-8 px-4 py-10">
+      <PageHero
+        eyebrow={text.eyebrow}
+        title={text.title}
+        description={text.subtitle}
+        badge={text.badge}
+        action={
+          unreadCount > 0 ? (
             <button
               onClick={() => void markAllAsRead()}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+              className="rounded-2xl bg-amber-500 px-6 py-3 font-semibold text-zinc-950 shadow-[0_12px_30px_rgba(245,158,11,0.2)] transition hover:bg-amber-400"
             >
-              Mark all as read
+              {text.markAll}
             </button>
-          )}
+          ) : null
+        }
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <StatCard label={text.total} value={notifications.length} />
+          <StatCard label={text.unread} value={unreadCount} accent />
+          <StatCard label={text.read} value={readCount} />
         </div>
+      </PageHero>
 
-        {isLoading && !loading ? (
-          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-            Refreshing notifications...
-          </div>
-        ) : null}
+      {isLoading ? (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm text-amber-200">
+          {text.refreshing}
+        </div>
+      ) : null}
 
+      <SectionSurface
+        title={text.title}
+        description={isHebrew ? 'מעקב כרונולוגי ונוח אחרי כל מה שקורה בחשבון שלך.' : 'A cleaner chronological view of everything happening on your account.'}
+      >
         {notifications.length === 0 ? (
           <EmptyState
-            eyebrow="Activity Feed"
+            eyebrow={text.emptyEyebrow}
             icon="📭"
-            title="No notifications yet"
-            description="You&apos;ll see notifications here when coaches assign workouts, players complete sessions, or connection requests happen."
+            title={text.emptyTitle}
+            description={text.emptyDescription}
           />
         ) : (
           <div className="space-y-4">
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`bg-white rounded-lg shadow p-6 transition-all ${
-                  !notification.is_read ? 'border-l-4 border-blue-500 bg-blue-50' : ''
+                className={`rounded-[1.5rem] border p-5 shadow-[0_12px_36px_rgba(0,0,0,0.18)] transition ${
+                  notification.is_read
+                    ? 'border-zinc-800 bg-zinc-950/70'
+                    : 'border-amber-500/25 bg-linear-to-br from-amber-500/8 to-zinc-950'
                 }`}
               >
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className="text-3xl flex-shrink-0">
+                <div className="flex flex-wrap items-start gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-3xl shadow-[0_10px_24px_rgba(0,0,0,0.18)]">
                     {getNotificationIcon(notification.notification_type)}
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 text-lg">
-                          {notification.title}
-                        </h3>
-                        <p className="text-gray-700 mt-1">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-semibold text-stone-100">
+                            {notification.title}
+                          </h3>
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${getNotificationTone(
+                              notification.notification_type
+                            )}`}
+                          >
+                            {notification.notification_type.replaceAll('_', ' ')}
+                          </span>
+                          {!notification.is_read ? (
+                            <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300">
+                              {text.unread}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-3 max-w-3xl leading-7 text-stone-300">
                           {notification.message}
                         </p>
-                        <p className="text-sm text-gray-500 mt-2">
-                          {formatTime(notification.created_at)}
+                        <p className="mt-3 text-sm text-stone-500">
+                          {formatTime(notification.created_at, locale, isHebrew)}
                         </p>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 ml-4">
-                        {!notification.is_read && (
+                      <div className="flex items-center gap-2">
+                        {!notification.is_read ? (
                           <button
-                            onClick={() => void handleMarkAsRead(notification.id)}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            onClick={() => void markAsRead(notification.id)}
+                            className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-stone-200 transition hover:border-zinc-600 hover:text-stone-100"
                           >
-                            Mark as read
+                            {text.markOne}
                           </button>
-                        )}
+                        ) : null}
 
                         <Link
                           href={getNotificationLink(notification)}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
                         >
-                          View →
+                          {text.view}
                         </Link>
                       </div>
                     </div>
@@ -157,29 +278,7 @@ export default function NotificationsPage() {
             ))}
           </div>
         )}
-      </div>
+      </SectionSurface>
     </div>
   );
-}
-
-function formatTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins} minutes ago`;
-  if (diffHours < 24) return `${diffHours} hours ago`;
-  if (diffDays < 7) return `${diffDays} days ago`;
-
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }

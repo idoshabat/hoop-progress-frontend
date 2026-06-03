@@ -296,7 +296,7 @@ export default function Home() {
                   <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
                     <p className="text-sm text-stone-400">{text.currentBlock}</p>
                     <p className="mt-1 text-lg font-semibold text-stone-100">
-                      {isHebrew ? "עקביות מטווח בינוני" : "Mid-range consistency"}
+                      {isHebrew ? "עקביות מחצי מרחק" : "Mid-range consistency"}
                     </p>
                     <div className="mt-4 h-2 overflow-hidden rounded-full bg-zinc-800">
                       <div className="h-full w-[72%] rounded-full bg-linear-to-r from-amber-500 to-amber-300" />

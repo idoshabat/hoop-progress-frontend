@@ -24,7 +24,7 @@ export default function Navbar() {
         logout: "התנתק",
         login: "התחבר",
         register: "הרשמה",
-        brand: "🏀 HoopProgress",
+        brand: "HoopProgress",
       }
     : {
         loading: "Loading...",
@@ -38,7 +38,7 @@ export default function Navbar() {
         logout: "Logout",
         login: "Login",
         register: "Register",
-        brand: "🏀 HoopProgress",
+        brand: "HoopProgress",
       };
 
   const languageToggle = (
@@ -119,9 +119,20 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           href="/"
-          className="text-xl font-bold tracking-wide text-amber-400 transition hover:text-amber-300"
+          className="flex items-center gap-3 text-xl font-bold tracking-wide text-amber-400 transition hover:text-amber-300"
         >
-          {text.brand}
+          <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-amber-500/20 bg-transparent shadow-[0_8px_20px_rgba(0,0,0,0.2)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/HoopProgressLogo.png"
+              alt="HoopProgress logo"
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-full object-cover"
+              draggable={false}
+            />
+          </span>
+          <span>{text.brand}</span>
         </Link>
 
         {/* Desktop Links */}
