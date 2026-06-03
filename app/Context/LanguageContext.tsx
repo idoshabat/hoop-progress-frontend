@@ -47,7 +47,7 @@ export function LanguageProvider({
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const language = useSyncExternalStore(
+  const language = useSyncExternalStore<AppLanguage>(
     subscribe,
     getStoredLanguage,
     () => "he"
@@ -66,7 +66,7 @@ export function LanguageProvider({
     document.body.dir = dir;
   }, [language]);
 
-  const value = useMemo(
+  const value = useMemo<LanguageContextValue>(
     () => ({
       language,
       isHebrew: language === "he",
