@@ -7,6 +7,7 @@ import { PlayerProfile, WorkoutTemplate } from "@/app/types";
 import api from "@/app/lib/axios";
 import EmptyState from "@/app/Components/EmptyState";
 import SelectTemplateModal from "@/app/Components/SelectTemplateModal";
+import SearchToolbar from "@/app/Components/SearchToolbar";
 import TemplateForm from "@/app/Components/TemplateForm";
 import TemplateCard from "@/app/Components/TemplateCard";
 import {
@@ -30,6 +31,8 @@ export default function ManageTemplatesPage() {
   const [editingTemplate, setEditingTemplate] = useState<WorkoutTemplate | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [templateToUse, setTemplateToUse] = useState<WorkoutTemplate | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [descriptionFilter, setDescriptionFilter] = useState<"all" | "with" | "without">("all");
 
   const text = useMemo(
     () =>
@@ -55,6 +58,10 @@ export default function ManageTemplatesPage() {
         totalSessions: "סה\"כ סשנים מתוכננים",
         libraryTitle: "ספריית תבניות",
         libraryDescription: "כל תבנית כאן יכולה להפוך לאימון בפועל בכמה קליקים.",
+        searchPlaceholder: "חפש תבנית לפי שם או תיאור",
+        allTemplates: "הכול",
+        withDescription: "עם תיאור",
+        withoutDescription: "בלי תיאור",
         createPanelEyebrow: "עיצוב חדש",
         editPanelEyebrow: "עדכון קיים",
         createPanelDescription: "הגדר מבנה חכם וברור לאימון הבא שתרצה לשכפל.",
@@ -82,6 +89,10 @@ export default function ManageTemplatesPage() {
         totalSessions: "Planned Sessions Total",
         libraryTitle: "Template Library",
         libraryDescription: "Every template here can turn into a real workout in just a few clicks.",
+        searchPlaceholder: "Search templates by name or description",
+        allTemplates: "All",
+        withDescription: "With description",
+        withoutDescription: "Without description",
         createPanelEyebrow: "New Blueprint",
         editPanelEyebrow: "Refine Template",
         createPanelDescription: "Define a clean, repeatable workout structure for your next assignment.",
@@ -100,6 +111,23 @@ export default function ManageTemplatesPage() {
     () => templates.reduce((sum, template) => sum + template.target_sessions, 0),
     [templates]
   );
+
+  const filteredTemplates = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    return templates.filter((template) => {
+      const matchesQuery = `${template.name} ${template.description ?? ""}`
+        .toLowerCase()
+        .includes(normalizedQuery);
+      const hasDescription = Boolean(template.description?.trim());
+      const matchesDescription =
+        descriptionFilter === "all" ||
+        (descriptionFilter === "with" && hasDescription) ||
+        (descriptionFilter === "without" && !hasDescription);
+
+      return matchesQuery && matchesDescription;
+    });
+  }, [descriptionFilter, searchQuery, templates]);
 
   const loadTemplates = useCallback(async () => {
     try {
@@ -320,12 +348,52 @@ export default function ManageTemplatesPage() {
               <p className="mt-2 text-stone-400">{text.libraryDescription}</p>
             </div>
             <div className="rounded-full border border-zinc-800 bg-zinc-900/80 px-4 py-2 text-sm font-medium text-stone-300">
-              {templates.length} {isHebrew ? "תבניות מוכנות" : "ready-made templates"}
+              {filteredTemplates.length} {isHebrew ? "תבניות מוצגות" : "templates shown"}
             </div>
           </div>
 
+          <SearchToolbar
+            query={searchQuery}
+            onQueryChange={setSearchQuery}
+            placeholder={text.searchPlaceholder}
+          >
+            <button
+              type="button"
+              onClick={() => setDescriptionFilter("all")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                descriptionFilter === "all"
+                  ? "bg-amber-500 text-zinc-950"
+                  : "border border-zinc-700 bg-zinc-950 text-stone-300"
+              }`}
+            >
+              {text.allTemplates}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDescriptionFilter("with")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                descriptionFilter === "with"
+                  ? "bg-amber-500 text-zinc-950"
+                  : "border border-zinc-700 bg-zinc-950 text-stone-300"
+              }`}
+            >
+              {text.withDescription}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDescriptionFilter("without")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                descriptionFilter === "without"
+                  ? "bg-amber-500 text-zinc-950"
+                  : "border border-zinc-700 bg-zinc-950 text-stone-300"
+              }`}
+            >
+              {text.withoutDescription}
+            </button>
+          </SearchToolbar>
+
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-            {templates.map((template) => (
+            {filteredTemplates.map((template) => (
               <TemplateCard
                 key={template.id}
                 template={template}

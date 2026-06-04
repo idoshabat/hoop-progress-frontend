@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
+import FormField from "@/app/Components/FormField";
+import FormPanel from "@/app/Components/FormPanel";
 import { PlayerProfile, WorkoutTemplate } from "@/app/types";
 import SelectTemplateModal from "@/app/Components/SelectTemplateModal";
 import {
@@ -67,9 +69,11 @@ export default function CreateWorkoutPage() {
           loading: "טוען...",
           loginRequired: "יש להתחבר כדי ליצור אימון.",
           title: "יצירת אימון",
+          eyebrow: "אימון חדש",
           selectedPlayerPrefix: "יוצר אימון עבור",
           coachSubtitle: "האימון הזה יוקצה לשחקן שנבחר.",
           playerSubtitle: "צור אימון עבור תוכנית האימון האישית שלך.",
+          formDescription: "בנה אימון חדש עם יעדים ברורים, או השתמש בתבנית קיימת כדי לחסוך זמן.",
           fromScratch: "מאפס",
           useTemplate: "השתמש בתבנית",
           creatingFor: "יוצר אימון עבור:",
@@ -83,6 +87,11 @@ export default function CreateWorkoutPage() {
           goalPercentage: "אחוז יעד",
           targetAttempts: "מספר זריקות יעד",
           targetSessions: "מספר סשנים יעד",
+          workoutNameHelper: "בחר שם קצר וברור שיהיה קל לזהות אחר כך ברשימות ובהתראות.",
+          descriptionHelper: "הוסף דגשים טכניים, דגש מנטלי או כל הקשר שיעזור לביצוע האימון.",
+          goalHelper: "היעד האחוזי שאליו השחקן צריך לשאוף לאורך כל האימון.",
+          attemptsHelper: "כמה זריקות ייספרו בכל ניסיון של האימון.",
+          sessionsHelper: "כמה סשנים השחקן צריך להשלים כדי לסיים את האימון.",
           creating: "יוצר...",
           create: "צור",
         }
@@ -93,9 +102,11 @@ export default function CreateWorkoutPage() {
           loading: "Loading...",
           loginRequired: "Please log in to create a workout.",
           title: "Create Workout",
+          eyebrow: "New Workout",
           selectedPlayerPrefix: "Creating workout for",
           coachSubtitle: "This workout will be assigned to the selected player.",
           playerSubtitle: "Create a workout for your own training plan.",
+          formDescription: "Build a new workout with clear targets, or use an existing template to move faster.",
           fromScratch: "From Scratch",
           useTemplate: "Use Template",
           creatingFor: "Creating workout for:",
@@ -109,6 +120,11 @@ export default function CreateWorkoutPage() {
           goalPercentage: "Goal Percentage",
           targetAttempts: "Target Attempts",
           targetSessions: "Target Sessions",
+          workoutNameHelper: "Pick a clear title that will be easy to spot later in lists and notifications.",
+          descriptionHelper: "Add technical notes, a mental cue, or any context that helps guide the workout.",
+          goalHelper: "The success percentage the player should aim to reach across this workout.",
+          attemptsHelper: "How many attempts each workout session should count.",
+          sessionsHelper: "How many sessions the player needs to complete the workout.",
           creating: "Creating...",
           create: "Create",
         };
@@ -229,24 +245,27 @@ export default function CreateWorkoutPage() {
     }
 
     return (
-        <div className="mx-auto mt-20 max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg shadow-black/30">
-            <h1 className="mb-2 text-2xl text-stone-100">{text.title}</h1>
-            <p className="mb-4 text-sm text-stone-400">
-                {selectedPlayer
-                    ? `${text.selectedPlayerPrefix} ${selectedPlayer.username}`
-                    : isCoachCreatingForPlayer
+        <div className="mx-auto mt-12 max-w-3xl px-4 pb-10">
+            <FormPanel
+              eyebrow={text.eyebrow}
+              title={text.title}
+              description={
+                selectedPlayer
+                  ? `${text.selectedPlayerPrefix} ${selectedPlayer.username}`
+                  : isCoachCreatingForPlayer
                     ? text.coachSubtitle
-                    : text.playerSubtitle}
-            </p>
+                    : `${text.playerSubtitle} ${text.formDescription}`
+              }
+            >
 
             {isCoachCreatingForPlayer && templates.length > 0 && (
-              <div className="mb-4 flex gap-2">
+              <div className="mb-6 flex gap-2 rounded-2xl border border-zinc-800 bg-zinc-950/70 p-1.5">
                 <button
                   onClick={() => {
                     setUseTemplate(false);
                     setShowTemplateModal(false);
                   }}
-                  className={`flex-1 rounded py-2 text-sm transition ${
+                  className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition ${
                     !useTemplate
                       ? "bg-amber-500 text-zinc-950"
                       : "border border-zinc-700 text-stone-400 hover:text-stone-300"
@@ -265,7 +284,7 @@ export default function CreateWorkoutPage() {
                       setShowTemplateModal(true);
                     }
                   }}
-                  className={`flex-1 rounded py-2 text-sm transition ${
+                  className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition ${
                     useTemplate
                       ? "bg-amber-500 text-zinc-950"
                       : "border border-zinc-700 text-stone-400 hover:text-stone-300"
@@ -279,18 +298,18 @@ export default function CreateWorkoutPage() {
             {/* Template selection for specific player */}
             {useTemplate && parsedPlayerId && selectedPlayer && (
               <div className="space-y-4">
-                <div className="text-sm text-stone-400 mb-4">
+                <div className="mb-4 rounded-2xl border border-zinc-800 bg-zinc-950/60 px-4 py-3 text-sm text-stone-400">
                   {text.creatingFor} <span className="text-stone-200 font-semibold">{selectedPlayer.username}</span>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-stone-200">{text.selectTemplate}</label>
+                  <label className="block text-sm font-semibold text-stone-200">{text.selectTemplate}</label>
                   <div className="grid gap-2 max-h-60 overflow-y-auto">
                     {templates.map((template) => (
                       <button
                         key={template.id}
                         onClick={() => handleUseTemplate(template.id)}
                         disabled={saving}
-                        className="text-left p-3 border border-zinc-700 rounded bg-zinc-800 hover:bg-zinc-700 transition disabled:opacity-50"
+                        className="rounded-2xl border border-zinc-700 bg-zinc-800 p-4 text-left transition hover:bg-zinc-700 disabled:opacity-50"
                       >
                         <div className="font-semibold text-stone-100">{template.name}</div>
                         {template.description && (
@@ -305,7 +324,7 @@ export default function CreateWorkoutPage() {
                 </div>
                 <button
                   onClick={() => setUseTemplate(false)}
-                  className="w-full border border-zinc-700 rounded py-2 text-stone-300 hover:bg-zinc-800 transition"
+                  className="w-full rounded-2xl border border-zinc-700 py-3 text-stone-300 transition hover:bg-zinc-800"
                 >
                   {text.cancel}
                 </button>
@@ -314,58 +333,70 @@ export default function CreateWorkoutPage() {
 
             {!useTemplate && (
               <form onSubmit={handleCreate} className="flex flex-col gap-4">
-                <input
-                    type="text"
-                    placeholder={text.workoutName}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
-                    required
-                />
-                <textarea
-                    placeholder={text.description}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
-                    rows={4}
-                />
-                <input
-                    type="number"
-                    placeholder={text.goalPercentage}
-                    value={goalPercentage}
-                    min={0}
-                    max={100}
-                    onChange={(e) => setGoalPercentage(e.target.value)}
-                    className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
-                    required
-                />
-                <input
-                    type="number"
-                    placeholder={text.targetAttempts}
-                    value={targetAttempts}
-                    onChange={(e) => setTargetAttempts(e.target.value)}
-                    className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
-                    required
-                />
-                <input
-                    type="number"
-                    placeholder={text.targetSessions}
-                    value={targetSessions}
-                    onChange={(e) => setTargetSessions(e.target.value)}
-                    className="rounded border border-zinc-700 bg-zinc-950 p-2 text-stone-100"
-                    required
-                />
+                <FormField label={text.workoutName} helper={text.workoutNameHelper} required>
+                  <input
+                      type="text"
+                      placeholder={text.workoutName}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100"
+                      required
+                  />
+                </FormField>
+                <FormField label={text.description} helper={text.descriptionHelper}>
+                  <textarea
+                      placeholder={text.description}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100"
+                      rows={4}
+                  />
+                </FormField>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField label={text.goalPercentage} helper={text.goalHelper} required>
+                    <input
+                        type="number"
+                        placeholder={text.goalPercentage}
+                        value={goalPercentage}
+                        min={0}
+                        max={100}
+                        onChange={(e) => setGoalPercentage(e.target.value)}
+                        className="rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100"
+                        required
+                    />
+                  </FormField>
+                  <FormField label={text.targetAttempts} helper={text.attemptsHelper} required>
+                    <input
+                        type="number"
+                        placeholder={text.targetAttempts}
+                        value={targetAttempts}
+                        onChange={(e) => setTargetAttempts(e.target.value)}
+                        className="rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100"
+                        required
+                    />
+                  </FormField>
+                </div>
+                <FormField label={text.targetSessions} helper={text.sessionsHelper} required>
+                  <input
+                      type="number"
+                      placeholder={text.targetSessions}
+                      value={targetSessions}
+                      onChange={(e) => setTargetSessions(e.target.value)}
+                      className="rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100"
+                      required
+                  />
+                </FormField>
                 <button
                     type="submit"
                     disabled={saving}
-                    className="rounded bg-amber-500 p-2 text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                    className="rounded-2xl bg-amber-500 p-3 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
                 >
                     {saving ? text.creating : text.create}
                 </button>
               </form>
             )}
 
-            {error && <p className="mt-2 text-red-500">{error}</p>}
+            {error && <p className="mt-4 rounded-2xl border border-red-800 bg-red-900/20 px-4 py-3 text-red-400">{error}</p>}
 
             {/* Only show modal when no specific player is selected */}
             <SelectTemplateModal
@@ -376,6 +407,7 @@ export default function CreateWorkoutPage() {
               onSelectTemplate={handleUseTemplate}
               isLoading={saving}
             />
+            </FormPanel>
         </div>
     );
 }

@@ -9,6 +9,7 @@ import WorkoutsSkeleton from "@/app/Components/WorkoutSkeleton";
 import WorkoutGroup from "@/app/Components/WorkoutGroup";
 import EmptyState from "@/app/Components/EmptyState";
 import PageHero from "@/app/Components/PageHero";
+import SearchToolbar from "@/app/Components/SearchToolbar";
 import StatCard from "@/app/Components/StatCard";
 import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
@@ -26,6 +27,8 @@ export default function WorkoutsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [retryingWorkoutId, setRetryingWorkoutId] = useState<number | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"all" | "in_progress" | "completed">("all");
 
     const text = isHebrew
         ? {
@@ -47,6 +50,10 @@ export default function WorkoutsPage() {
               inProgress: "פעילים כרגע",
               completed: "הושלמו",
               coachAssigned: "מהמאמנים שלי",
+              searchPlaceholder: "חפש אימון לפי שם או תיאור",
+              allStatuses: "הכול",
+              activeOnly: "פעילים",
+              completedOnly: "הושלמו",
               retrySuccessTitle: "האימון נוצר מחדש",
               retrySuccessMessage: "נוצר עבורך אימון חדש עם אותם היעדים והמבנה.",
               retryFailed: "יצירת ניסיון חוזר לאימון נכשלה",
@@ -71,6 +78,10 @@ export default function WorkoutsPage() {
               inProgress: "In Progress",
               completed: "Completed",
               coachAssigned: "Coach Assigned",
+              searchPlaceholder: "Search workouts by name or description",
+              allStatuses: "All",
+              activeOnly: "Active",
+              completedOnly: "Completed",
               retrySuccessTitle: "Workout recreated",
               retrySuccessMessage: "A new workout was created for you with the same structure and goals.",
               retryFailed: "Failed to create a retry workout",
@@ -154,6 +165,20 @@ export default function WorkoutsPage() {
                   sourceTone: "bg-zinc-800 text-amber-300",
               };
 
+    const matchesWorkoutQuery = (workout: Workout) => {
+        const haystack = `${workout.name} ${workout.description ?? ""}`.toLowerCase();
+        return haystack.includes(searchQuery.trim().toLowerCase());
+    };
+
+    const filteredInProgress =
+        statusFilter === "completed"
+            ? []
+            : selectedGroup.inProgress.filter(matchesWorkoutQuery);
+    const filteredCompleted =
+        statusFilter === "in_progress"
+            ? []
+            : selectedGroup.completed.filter(matchesWorkoutQuery);
+
     if (assignedByMe.length + assignedByMyCoaches.length === 0) {
         return (
             <div className="mx-auto mt-10 max-w-3xl p-4">
@@ -216,11 +241,51 @@ export default function WorkoutsPage() {
                 </button>
             </div>
 
+            <SearchToolbar
+                query={searchQuery}
+                onQueryChange={setSearchQuery}
+                placeholder={text.searchPlaceholder}
+            >
+                <button
+                    type="button"
+                    onClick={() => setStatusFilter("all")}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                        statusFilter === "all"
+                            ? "bg-amber-500 text-zinc-950"
+                            : "border border-zinc-700 bg-zinc-950 text-stone-300"
+                    }`}
+                >
+                    {text.allStatuses}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setStatusFilter("in_progress")}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                        statusFilter === "in_progress"
+                            ? "bg-amber-500 text-zinc-950"
+                            : "border border-zinc-700 bg-zinc-950 text-stone-300"
+                    }`}
+                >
+                    {text.activeOnly}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setStatusFilter("completed")}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                        statusFilter === "completed"
+                            ? "bg-amber-500 text-zinc-950"
+                            : "border border-zinc-700 bg-zinc-950 text-stone-300"
+                    }`}
+                >
+                    {text.completedOnly}
+                </button>
+            </SearchToolbar>
+
             <WorkoutGroup
                 title={selectedGroup.title}
                 description={selectedGroup.description}
-                inProgress={selectedGroup.inProgress}
-                completed={selectedGroup.completed}
+                inProgress={filteredInProgress}
+                completed={filteredCompleted}
                 sourceLabel={selectedGroup.sourceLabel}
                 sourceTone={selectedGroup.sourceTone}
                 showRetryButton={selectedSource === "coaches"}

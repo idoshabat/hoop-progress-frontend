@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/app/lib/axios";
 import { Workout } from "@/app/types";
+import FormField from "@/app/Components/FormField";
+import FormPanel from "@/app/Components/FormPanel";
 import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
 
@@ -35,11 +37,18 @@ export default function EditWorkoutPage() {
               completedDescription: "לא ניתן לערוך אימונים שהושלמו.",
               backToWorkout: "חזרה לאימון",
               title: "עריכת אימון ✏️",
+              eyebrow: "עדכון אימון",
+              subtitle: "עדכן את המבנה והיעדים כל עוד האימון עדיין לא הושלם.",
               name: "שם",
               description: "תיאור",
               targetAttempts: "מספר זריקות יעד",
               targetSessions: "מספר סשנים יעד",
               goalPercentage: "אחוז יעד",
+              nameHelper: "שמור על שם ברור שקל לזהות ברשימות ובדוחות.",
+              descriptionHelper: "אפשר לעדכן כאן דגשים טכניים, מטרה או הקשר קצר לשחקן.",
+              targetAttemptsHelper: "כמה זריקות צריך לבצע בכל סשן של האימון.",
+              targetSessionsHelper: "כמה סשנים נדרשים כדי להשלים את האימון.",
+              goalHelper: "אחוז ההצלחה שאליו השחקן צריך לשאוף לאורך האימון.",
               saving: "שומר...",
               save: "שמור שינויים",
               cancel: "ביטול",
@@ -52,11 +61,18 @@ export default function EditWorkoutPage() {
               completedDescription: "Completed workouts cannot be edited.",
               backToWorkout: "Back to Workout",
               title: "Edit Workout ✏️",
+              eyebrow: "Workout Update",
+              subtitle: "Adjust the structure and targets as long as this workout is still active.",
               name: "Name",
               description: "Description",
               targetAttempts: "Target Attempts",
               targetSessions: "Target Sessions",
               goalPercentage: "Goal Percentage",
+              nameHelper: "Keep the title clear so it stays easy to scan in lists and reports.",
+              descriptionHelper: "Update any technical emphasis, goal, or short context for the player.",
+              targetAttemptsHelper: "How many attempts each workout session should include.",
+              targetSessionsHelper: "How many sessions are required to complete the workout.",
+              goalHelper: "The percentage target the player should aim to reach across the workout.",
               saving: "Saving...",
               save: "Save Changes",
               cancel: "Cancel",
@@ -148,74 +164,56 @@ export default function EditWorkoutPage() {
 
     /* ---------- UI ---------- */
     return (
-        <div className="max-w-xl mx-auto p-6">
-            <h1 className="text-3xl font-bold mb-6">{text.title}</h1>
-
+        <div className="mx-auto max-w-3xl px-4 py-10">
+            <FormPanel eyebrow={text.eyebrow} title={text.title} description={text.subtitle}>
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Name */}
-                <div>
-                    <label className="block text-sm font-medium mb-1">
-                        {text.name}
-                    </label>
+                <FormField label={text.name} helper={text.nameHelper} required>
                     <input
                         name="name"
                         value={form.name}
                         onChange={handleChange}
                         required
-                        className="w-full border rounded p-2"
+                        className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100"
                     />
-                </div>
+                </FormField>
 
-                {/* Description */}
-                <div>
-                    <label className="block text-sm font-medium mb-1">
-                        {text.description}
-                    </label>
+                <FormField label={text.description} helper={text.descriptionHelper}>
                     <textarea
                         name="description"
                         value={form.description}
                         onChange={handleChange}
-                        className="w-full border rounded p-2"
+                        rows={4}
+                        className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100"
                     />
+                </FormField>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                    <FormField label={text.targetAttempts} helper={text.targetAttemptsHelper} required>
+                        <input
+                            type="number"
+                            name="target_attempts"
+                            value={form.target_attempts}
+                            onChange={handleChange}
+                            min={1}
+                            required
+                            className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100"
+                        />
+                    </FormField>
+
+                    <FormField label={text.targetSessions} helper={text.targetSessionsHelper} required>
+                        <input
+                            type="number"
+                            name="target_sessions"
+                            value={form.target_sessions}
+                            onChange={handleChange}
+                            min={1}
+                            required
+                            className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100"
+                        />
+                    </FormField>
                 </div>
 
-                {/* Target Attempts */}
-                <div>
-                    <label className="block text-sm font-medium mb-1">
-                        {text.targetAttempts}
-                    </label>
-                    <input
-                        type="number"
-                        name="target_attempts"
-                        value={form.target_attempts}
-                        onChange={handleChange}
-                        min={1}
-                        required
-                        className="w-full border rounded p-2"
-                    />
-                </div>
-
-                {/* Target Sessions */}
-                <div>
-                    <label className="block text-sm font-medium mb-1">
-                        {text.targetSessions}
-                    </label>
-                    <input
-                        type="number"
-                        name="target_sessions"
-                        value={form.target_sessions}
-                        onChange={handleChange}
-                        min={1}
-                        required
-                        className="w-full border rounded p-2"
-                    />
-                </div>
-
-                {/* Goal Percentage */}
-                <div>
-                    <label className="block text-sm font-medium mb-1">
-                        {text.goalPercentage}
-                    </label>
+                <FormField label={text.goalPercentage} helper={text.goalHelper} required>
                     <input
                         type="number"
                         name="goal_percentage"
@@ -224,16 +222,16 @@ export default function EditWorkoutPage() {
                         min={1}
                         max={100}
                         required
-                        className="w-full border rounded p-2"
+                        className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100"
                     />
-                </div>
+                </FormField>
 
                 {/* Actions */}
                 <div className="flex gap-4 pt-4">
                     <button
                         type="submit"
                         disabled={saving}
-                        className="rounded bg-amber-500 px-4 py-2 text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                        className="rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
                     >
                         {saving ? text.saving : text.save}
                     </button>
@@ -241,12 +239,13 @@ export default function EditWorkoutPage() {
                     <button
                         type="button"
                         onClick={() => router.back()}
-                        className="border px-4 py-2 rounded"
+                        className="rounded-2xl border border-zinc-700 px-5 py-3 text-stone-300"
                     >
                         {text.cancel}
                     </button>
                 </div>
             </form>
+            </FormPanel>
         </div>
     );
 }

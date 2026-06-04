@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { WorkoutTemplate } from "@/app/types";
 import { useLanguage } from "@/app/Context/LanguageContext";
+import FormField from "@/app/Components/FormField";
 
 interface TemplateFormProps {
   template?: WorkoutTemplate;
@@ -41,6 +42,10 @@ export default function TemplateForm({
         shotsPerSession: "זריקות לסשן *",
         sessionsTarget: "יעד סשנים *",
         goal: "אחוז יעד *",
+        goalHelper: "האחוז שאליו השחקן צריך לשאוף לאורך התבנית כולה.",
+        shotsHelper: "כמה זריקות יש לבצע בכל סשן של התבנית.",
+        sessionsHelper: "כמה סשנים נדרשים כדי להשלים את התבנית.",
+        descriptionHelper: "שמור כאן הקשר קצר שיעזור לך לזהות את מטרת התבנית בהמשך.",
         nameRequired: "שם התבנית הוא שדה חובה",
         attemptsMin: "מספר הזריקות חייב להיות גדול מ-0",
         sessionsMin: "מספר הסשנים חייב להיות גדול מ-0",
@@ -58,6 +63,10 @@ export default function TemplateForm({
         shotsPerSession: "Shots / Session *",
         sessionsTarget: "Sessions Target *",
         goal: "Goal % *",
+        goalHelper: "The percentage target the player should aim to hit across this template.",
+        shotsHelper: "How many shot attempts each session in this template should contain.",
+        sessionsHelper: "How many sessions are required to complete this template.",
+        descriptionHelper: "Save a short note here so this template is easier to recognize later.",
         nameRequired: "Template name is required",
         attemptsMin: "Target attempts must be greater than 0",
         sessionsMin: "Target sessions must be greater than 0",
@@ -116,61 +125,56 @@ export default function TemplateForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-stone-200">{text.templateName}</label>
+      <FormField label={text.templateName} helper={text.templatePlaceholder} required>
         <input
           type="text"
           name="name"
           value={formData.name}
           onChange={handleChange}
           placeholder={text.templatePlaceholder}
-          className="w-full border border-zinc-700 bg-zinc-950 p-2 rounded text-stone-100 placeholder-stone-500 focus:border-amber-500 focus:outline-none"
+          className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100 placeholder-stone-500 focus:border-amber-500 focus:outline-none"
           disabled={isLoading}
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label className="block text-sm font-medium text-stone-200">{text.description}</label>
+      <FormField label={text.description} helper={text.descriptionHelper}>
         <textarea
           name="description"
           value={formData.description}
           onChange={handleChange}
           placeholder={text.descriptionPlaceholder}
           rows={3}
-          className="w-full border border-zinc-700 bg-zinc-950 p-2 rounded text-stone-100 placeholder-stone-500 focus:border-amber-500 focus:outline-none"
+          className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100 placeholder-stone-500 focus:border-amber-500 focus:outline-none"
           disabled={isLoading}
         />
-      </div>
+      </FormField>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-200">{text.shotsPerSession}</label>
+        <FormField label={text.shotsPerSession} helper={text.shotsHelper} required>
           <input
             type="number"
             name="target_attempts"
             value={formData.target_attempts}
             onChange={handleChange}
             min="1"
-            className="w-full border border-zinc-700 bg-zinc-950 p-2 rounded text-stone-100 focus:border-amber-500 focus:outline-none"
+            className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100 focus:border-amber-500 focus:outline-none"
             disabled={isLoading}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-200">{text.sessionsTarget}</label>
+        </FormField>
+        <FormField label={text.sessionsTarget} helper={text.sessionsHelper} required>
           <input
             type="number"
             name="target_sessions"
             value={formData.target_sessions}
             onChange={handleChange}
             min="1"
-            className="w-full border border-zinc-700 bg-zinc-950 p-2 rounded text-stone-100 focus:border-amber-500 focus:outline-none"
+            className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100 focus:border-amber-500 focus:outline-none"
             disabled={isLoading}
           />
-        </div>
+        </FormField>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-stone-200">{text.goal}</label>
+      <FormField label={text.goal} helper={text.goalHelper} required>
         <input
           type="number"
           name="goal_percentage"
@@ -179,17 +183,17 @@ export default function TemplateForm({
           min="0"
           max="100"
           step="0.1"
-          className="w-full border border-zinc-700 bg-zinc-950 p-2 rounded text-stone-100 focus:border-amber-500 focus:outline-none"
+          className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-stone-100 focus:border-amber-500 focus:outline-none"
           disabled={isLoading}
         />
-      </div>
+      </FormField>
 
-      {error && <div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-800">{error}</div>}
+      {error && <div className="rounded-2xl border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">{error}</div>}
 
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-amber-500 text-zinc-950 rounded py-2 hover:bg-amber-400 disabled:opacity-50 font-semibold transition"
+        className="w-full rounded-2xl bg-amber-500 py-3 font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
       >
         {isLoading ? text.saving : template ? text.update : text.create}
       </button>

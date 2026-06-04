@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import EmptyState from '@/app/Components/EmptyState';
 import PageHero from '@/app/Components/PageHero';
+import SearchToolbar from '@/app/Components/SearchToolbar';
 import SectionSurface from '@/app/Components/SectionSurface';
 import StatCard from '@/app/Components/StatCard';
 import { useLanguage } from '@/app/Context/LanguageContext';
@@ -89,6 +90,8 @@ export default function NotificationsPage() {
     isLoading,
   } = useNotifications();
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read'>('all');
 
   const text = useMemo(
     () =>
@@ -104,6 +107,10 @@ export default function NotificationsPage() {
             markAll: 'סמן הכול כנקרא',
             markOne: 'סמן כנקרא',
             view: 'פתח',
+            searchPlaceholder: 'חפש התראה לפי כותרת או תוכן',
+            allStatuses: 'הכול',
+            unreadOnly: 'לא נקראו',
+            readOnly: 'נקראו',
             refreshing: 'מרענן התראות...',
             loading: 'טוען התראות...',
             emptyEyebrow: 'פיד פעילות',
@@ -122,6 +129,10 @@ export default function NotificationsPage() {
             markAll: 'Mark all as read',
             markOne: 'Mark as read',
             view: 'Open',
+            searchPlaceholder: 'Search notifications by title or message',
+            allStatuses: 'All',
+            unreadOnly: 'Unread',
+            readOnly: 'Read',
             refreshing: 'Refreshing notifications...',
             loading: 'Loading notifications...',
             emptyEyebrow: 'Activity Feed',
@@ -144,6 +155,17 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((notification) => !notification.is_read).length;
   const readCount = notifications.length - unreadCount;
   const locale = language === 'he' ? 'he-IL' : 'en-US';
+  const filteredNotifications = notifications.filter((notification) => {
+    const matchesQuery = `${notification.title} ${notification.message}`
+      .toLowerCase()
+      .includes(searchQuery.trim().toLowerCase());
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'unread' && !notification.is_read) ||
+      (statusFilter === 'read' && notification.is_read);
+
+    return matchesQuery && matchesStatus;
+  });
 
   if (loading) {
     return (
@@ -203,7 +225,48 @@ export default function NotificationsPage() {
         title={text.title}
         description={isHebrew ? 'מעקב כרונולוגי ונוח אחרי כל מה שקורה בחשבון שלך.' : 'A cleaner chronological view of everything happening on your account.'}
       >
-        {notifications.length === 0 ? (
+        <div className="space-y-5">
+        <SearchToolbar
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+          placeholder={text.searchPlaceholder}
+        >
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              statusFilter === 'all'
+                ? 'bg-amber-500 text-zinc-950'
+                : 'border border-zinc-700 bg-zinc-950 text-stone-300'
+            }`}
+          >
+            {text.allStatuses}
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('unread')}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              statusFilter === 'unread'
+                ? 'bg-amber-500 text-zinc-950'
+                : 'border border-zinc-700 bg-zinc-950 text-stone-300'
+            }`}
+          >
+            {text.unreadOnly}
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('read')}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              statusFilter === 'read'
+                ? 'bg-amber-500 text-zinc-950'
+                : 'border border-zinc-700 bg-zinc-950 text-stone-300'
+            }`}
+          >
+            {text.readOnly}
+          </button>
+        </SearchToolbar>
+
+        {filteredNotifications.length === 0 ? (
           <EmptyState
             eyebrow={text.emptyEyebrow}
             icon="📭"
@@ -212,7 +275,7 @@ export default function NotificationsPage() {
           />
         ) : (
           <div className="space-y-4">
-            {notifications.map((notification) => (
+            {filteredNotifications.map((notification) => (
               <div
                 key={notification.id}
                 className={`rounded-[1.5rem] border p-5 shadow-[0_12px_36px_rgba(0,0,0,0.18)] transition ${
@@ -278,6 +341,7 @@ export default function NotificationsPage() {
             ))}
           </div>
         )}
+        </div>
       </SectionSurface>
     </div>
   );

@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/app/lib/axios";
 import PageHero from "@/app/Components/PageHero";
+import SearchToolbar from "@/app/Components/SearchToolbar";
 import SectionSurface from "@/app/Components/SectionSurface";
 import StatCard from "@/app/Components/StatCard";
 import { useAuth } from "@/app/Context/AuthContext";
@@ -46,6 +47,8 @@ export default function ManageCoachesPage() {
     const [error, setError] = useState("");
     const [searchMessage, setSearchMessage] = useState("");
     const [actionMessage, setActionMessage] = useState("");
+    const [requestQuery, setRequestQuery] = useState("");
+    const [requestFilter, setRequestFilter] = useState<"all" | "incoming" | "outgoing">("all");
 
     const text = useMemo(
         () =>
@@ -98,6 +101,10 @@ export default function ManageCoachesPage() {
                       pendingOutgoing: "יוצאות פתוחות",
                       coachLibrary: "ספריית מאמנים",
                       coachLibraryDescription: "מצא מאמן חדש או נהל מצב חיבור קיים ממקום אחד.",
+                      requestSearchPlaceholder: "סנן בקשות לפי שם משתמש",
+                      allRequests: "כל הבקשות",
+                      incomingOnly: "נכנסות",
+                      outgoingOnly: "יוצאות",
                   }
                 : {
                       failedLoad: "Failed to load coaches.",
@@ -147,6 +154,10 @@ export default function ManageCoachesPage() {
                       pendingOutgoing: "Open Outgoing",
                       coachLibrary: "Coach Library",
                       coachLibraryDescription: "Find a new coach or manage an existing connection from one place.",
+                      requestSearchPlaceholder: "Filter requests by username",
+                      allRequests: "All Requests",
+                      incomingOnly: "Incoming",
+                      outgoingOnly: "Outgoing",
                   },
         [isHebrew]
     );
@@ -304,6 +315,12 @@ export default function ManageCoachesPage() {
     const outgoingRequestForSearchedCoach = searchedCoach
         ? outgoingRequests.find((request) => request.receiver.id === searchedCoach.id)
         : undefined;
+    const filteredIncomingRequests = incomingRequests.filter((request) =>
+        request.sender_username.toLowerCase().includes(requestQuery.trim().toLowerCase())
+    );
+    const filteredOutgoingRequests = outgoingRequests.filter((request) =>
+        request.receiver_username.toLowerCase().includes(requestQuery.trim().toLowerCase())
+    );
 
     return (
         <div className="mx-auto max-w-6xl space-y-8 px-4 py-10">
@@ -413,15 +430,57 @@ export default function ManageCoachesPage() {
                 ) : null}
             </SectionSurface>
 
+            <div className="space-y-5">
+                <SearchToolbar
+                    query={requestQuery}
+                    onQueryChange={setRequestQuery}
+                    placeholder={text.requestSearchPlaceholder}
+                >
+                    <button
+                        type="button"
+                        onClick={() => setRequestFilter("all")}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                            requestFilter === "all"
+                                ? "bg-amber-500 text-zinc-950"
+                                : "border border-zinc-700 bg-zinc-950 text-stone-300"
+                        }`}
+                    >
+                        {text.allRequests}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setRequestFilter("incoming")}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                            requestFilter === "incoming"
+                                ? "bg-amber-500 text-zinc-950"
+                                : "border border-zinc-700 bg-zinc-950 text-stone-300"
+                        }`}
+                    >
+                        {text.incomingOnly}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setRequestFilter("outgoing")}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                            requestFilter === "outgoing"
+                                ? "bg-amber-500 text-zinc-950"
+                                : "border border-zinc-700 bg-zinc-950 text-stone-300"
+                        }`}
+                    >
+                        {text.outgoingOnly}
+                    </button>
+                </SearchToolbar>
+
             <div className="grid gap-8 xl:grid-cols-2">
+                {requestFilter !== "outgoing" ? (
                 <SectionSurface title={text.incomingRequests}>
-                    {incomingRequests.length === 0 ? (
+                    {filteredIncomingRequests.length === 0 ? (
                         <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-4 py-5 text-stone-500">
                             {text.noIncomingRequests}
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {incomingRequests.map((request) => (
+                            {filteredIncomingRequests.map((request) => (
                                 <div
                                     key={request.id}
                                     className="rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5"
@@ -458,15 +517,17 @@ export default function ManageCoachesPage() {
                         </div>
                     )}
                 </SectionSurface>
+                ) : null}
 
+                {requestFilter !== "incoming" ? (
                 <SectionSurface title={text.outgoingRequests}>
-                    {outgoingRequests.length === 0 ? (
+                    {filteredOutgoingRequests.length === 0 ? (
                         <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-4 py-5 text-stone-500">
                             {text.noOutgoingRequests}
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {outgoingRequests.map((request) => (
+                            {filteredOutgoingRequests.map((request) => (
                                 <div
                                     key={request.id}
                                     className="rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5"
@@ -488,6 +549,8 @@ export default function ManageCoachesPage() {
                         </div>
                     )}
                 </SectionSurface>
+                ) : null}
+            </div>
             </div>
         </div>
     );

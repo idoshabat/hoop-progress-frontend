@@ -8,6 +8,7 @@ import { useLanguage } from "@/app/Context/LanguageContext";
 import EmptyState from "@/app/Components/EmptyState";
 import PageHero from "@/app/Components/PageHero";
 import PendingRequestsBanner from "@/app/Components/PendingRequestsBanner";
+import SearchToolbar from "@/app/Components/SearchToolbar";
 import SectionSurface from "@/app/Components/SectionSurface";
 import StatCard from "@/app/Components/StatCard";
 import { CoachProfile } from "@/app/types";
@@ -18,6 +19,7 @@ export default function MyCoachesPage() {
     const [coaches, setCoaches] = useState<CoachProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
 
     const text = isHebrew
         ? {
@@ -41,6 +43,7 @@ export default function MyCoachesPage() {
               totalCoaches: "מאמנים מחוברים",
               completeProfiles: "פרופילים מלאים",
               birthdaysKnown: "תאריכי לידה זמינים",
+              searchPlaceholder: "חפש מאמן לפי שם או תאריך לידה",
               badge: "Coaches",
           }
         : {
@@ -64,12 +67,22 @@ export default function MyCoachesPage() {
               totalCoaches: "Connected Coaches",
               completeProfiles: "Completed Profiles",
               birthdaysKnown: "Birthdays Known",
+              searchPlaceholder: "Search coaches by name or birth date",
               badge: "Coaches",
           };
 
     const completeProfiles = useMemo(
         () => coaches.filter((coach) => Boolean(coach.date_of_birth)).length,
         [coaches]
+    );
+    const filteredCoaches = useMemo(
+        () =>
+            coaches.filter((coach) =>
+                `${coach.username} ${coach.date_of_birth ?? ""}`
+                    .toLowerCase()
+                    .includes(searchQuery.trim().toLowerCase())
+            ),
+        [coaches, searchQuery]
     );
 
     const loadCoaches = useCallback(async () => {
@@ -144,7 +157,13 @@ export default function MyCoachesPage() {
                     ) : null
                 }
             >
-                {coaches.length === 0 ? (
+                <div className="space-y-5">
+                <SearchToolbar
+                    query={searchQuery}
+                    onQueryChange={setSearchQuery}
+                    placeholder={text.searchPlaceholder}
+                />
+                {filteredCoaches.length === 0 ? (
                     <EmptyState
                         eyebrow={text.emptyEyebrow}
                         icon="🧑‍🏫"
@@ -155,7 +174,7 @@ export default function MyCoachesPage() {
                     />
                 ) : (
                     <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        {coaches.map((coach) => (
+                        {filteredCoaches.map((coach) => (
                             <li
                                 key={coach.id}
                                 className="rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.2)]"
@@ -191,6 +210,7 @@ export default function MyCoachesPage() {
                         ))}
                     </ul>
                 )}
+                </div>
             </SectionSurface>
         </div>
     );
