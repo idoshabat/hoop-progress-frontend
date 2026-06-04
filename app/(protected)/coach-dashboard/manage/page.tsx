@@ -6,6 +6,7 @@ import api from "@/app/lib/axios";
 import PageHero from "@/app/Components/PageHero";
 import ErrorState from "@/app/Components/ErrorState";
 import InlineAlert from "@/app/Components/InlineAlert";
+import LocalizedDateText from "@/app/Components/LocalizedDateText";
 import SearchToolbar from "@/app/Components/SearchToolbar";
 import SectionSurface from "@/app/Components/SectionSurface";
 import StatCard from "@/app/Components/StatCard";
@@ -449,7 +450,7 @@ export default function ManagePlayersPage() {
                                         <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
                                             <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.dateOfBirth}</p>
                                             <p className="mt-2 font-medium text-stone-200">
-                                                {searchedPlayer.date_of_birth || text.notAvailable}
+                                                <LocalizedDateText value={searchedPlayer.date_of_birth} fallback={text.notAvailable} />
                                             </p>
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">

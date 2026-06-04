@@ -7,6 +7,7 @@ import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
 import EmptyState from "@/app/Components/EmptyState";
 import ErrorState from "@/app/Components/ErrorState";
+import LocalizedDateText from "@/app/Components/LocalizedDateText";
 import PageHero from "@/app/Components/PageHero";
 import PendingRequestsBanner from "@/app/Components/PendingRequestsBanner";
 import SectionSurface from "@/app/Components/SectionSurface";
@@ -229,7 +230,7 @@ export default function CoachDashboardPage() {
                                 <div className="mt-5 grid gap-3 text-sm text-stone-300">
                                     <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
                                         <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.dateOfBirth}</p>
-                                        <p className="mt-2 font-medium">{player.date_of_birth || text.notAvailable}</p>
+                                        <p className="mt-2 font-medium"><LocalizedDateText value={player.date_of_birth} fallback={text.notAvailable} /></p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">

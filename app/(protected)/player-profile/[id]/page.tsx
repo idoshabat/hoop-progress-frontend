@@ -13,6 +13,7 @@ import {
 } from "@/app/lib/cloudinary";
 import ErrorState from "@/app/Components/ErrorState";
 import InlineAlert from "@/app/Components/InlineAlert";
+import LocalizedDateText from "@/app/Components/LocalizedDateText";
 import { ConnectionRequest, PlayerProfile } from "@/app/types";
 
 function matchesIncomingRequestForPlayer(request: ConnectionRequest, profile: PlayerProfile) {
@@ -532,7 +533,7 @@ export default function PublicPlayerProfilePage() {
                         <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
                             <p className="text-sm text-stone-500">{text.dateOfBirth}</p>
                             <p className="mt-2 text-lg font-semibold text-stone-100">
-                                {profile.date_of_birth || text.notAvailable}
+                                <LocalizedDateText value={profile.date_of_birth} fallback={text.notAvailable} />
                             </p>
                         </div>
                     </div>

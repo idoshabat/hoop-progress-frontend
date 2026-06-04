@@ -7,6 +7,7 @@ import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
 import EmptyState from "@/app/Components/EmptyState";
 import ErrorState from "@/app/Components/ErrorState";
+import LocalizedDateText from "@/app/Components/LocalizedDateText";
 import PageHero from "@/app/Components/PageHero";
 import PendingRequestsBanner from "@/app/Components/PendingRequestsBanner";
 import SearchToolbar from "@/app/Components/SearchToolbar";
@@ -224,7 +225,7 @@ export default function MyCoachesPage() {
                                 <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
                                     <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.dob}</p>
                                     <p className="mt-2 font-medium text-stone-200">
-                                        {coach.date_of_birth || text.unavailable}
+                                        <LocalizedDateText value={coach.date_of_birth} fallback={text.unavailable} />
                                     </p>
                                 </div>
 
