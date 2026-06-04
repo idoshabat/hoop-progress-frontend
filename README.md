@@ -1,5 +1,16 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Cloudinary Setup
+
+Profile-photo uploads use a direct unsigned Cloudinary upload and reject files larger than `10MB`.
+
+Add these env vars before running the web app:
+
+```bash
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_unsigned_upload_preset
+```
+
 ## Getting Started
 
 First, run the development server:

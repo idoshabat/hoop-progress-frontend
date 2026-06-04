@@ -11,6 +11,7 @@ export interface PlayerProfile {
     position: "PG" | "SG" | "SF" | "PF" | "C";
     height_cm?: number;
     date_of_birth?: string | null;
+    profile_photo_url?: string | null;
     coaches : CoachProfile[];
 }
 
@@ -18,6 +19,7 @@ export interface CoachProfile {
     id: number;
     username:string;
     date_of_birth?: string | null;
+    profile_photo_url?: string | null;
     players: PlayerProfile[];
 }
 
@@ -114,4 +116,3 @@ export type Notification = {
     read_at?: string | null;
     created_at: string;
 };
-

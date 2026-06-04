@@ -7,6 +7,10 @@ import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
 import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
+import {
+    uploadProfileImageToCloudinary,
+    validateProfileImageFile,
+} from "@/app/lib/cloudinary";
 import { CoachProfile } from "@/app/types";
 
 export default function PublicCoachProfilePage() {
@@ -19,6 +23,9 @@ export default function PublicCoachProfilePage() {
     const [error, setError] = useState("");
     const [isEditing, setIsEditing] = useState(false);
     const [dateOfBirth, setDateOfBirth] = useState("");
+    const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+    const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
 
     const text = isHebrew
         ? {
@@ -40,7 +47,11 @@ export default function PublicCoachProfilePage() {
               profileDetails: "פרטי פרופיל",
               back: "חזרה",
               saveChanges: "שמור שינויים",
+              savingChanges: "שומר...",
               username: "שם משתמש",
+              profilePhoto: "תמונת פרופיל",
+              profilePhotoHint: "JPG או PNG עד 10MB.",
+              removePhoto: "הסר תמונה חדשה",
             }
         : {
               failedLoad: "Failed to load profile.",
@@ -61,7 +72,11 @@ export default function PublicCoachProfilePage() {
               profileDetails: "Profile Details",
               back: "Back",
               saveChanges: "Save Changes",
+              savingChanges: "Saving...",
               username: "Username",
+              profilePhoto: "Profile Photo",
+              profilePhotoHint: "JPG or PNG up to 10MB.",
+              removePhoto: "Remove New Photo",
             };
 
     const loadProfile = useCallback(async () => {
@@ -69,6 +84,8 @@ export default function PublicCoachProfilePage() {
             const res = await api.get(`coaches-profiles/${params.id}/`);
             setProfile(res.data);
             setDateOfBirth(res.data.date_of_birth ?? "");
+            setProfilePhotoFile(null);
+            setProfilePhotoPreview(null);
         } catch (err) {
             console.error(err);
             setError(text.failedLoad);
@@ -84,18 +101,40 @@ export default function PublicCoachProfilePage() {
 
     const isOwner = !!profile && user?.role === "COACH" && user.username === profile.username;
 
+    const handleProfilePhotoChange = (file: File | null) => {
+        if (!file) return;
+
+        try {
+            validateProfileImageFile(file);
+            setProfilePhotoFile(file);
+            setProfilePhotoPreview(URL.createObjectURL(file));
+            setError("");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : text.failedUpdate);
+        }
+    };
+
     const handleSave = async () => {
         if (!profile || !isOwner) return;
 
         try {
+            setSaving(true);
+            const profilePhotoUrl = profilePhotoFile
+                ? await uploadProfileImageToCloudinary(profilePhotoFile)
+                : profile.profile_photo_url ?? null;
+
             await api.patch(`coaches-profiles/${profile.id}/`, {
                 date_of_birth: dateOfBirth || null,
+                profile_photo_url: profilePhotoUrl,
             });
 
             setProfile({
                 ...profile,
                 date_of_birth: dateOfBirth || null,
+                profile_photo_url: profilePhotoUrl,
             });
+            setProfilePhotoFile(null);
+            setProfilePhotoPreview(null);
             showSuccess({
                 title: text.updatedTitle,
                 message: text.updatedMessage,
@@ -104,9 +143,13 @@ export default function PublicCoachProfilePage() {
             setIsEditing(false);
         } catch (err) {
             console.error(err);
-            setError(text.failedUpdate);
+            setError(err instanceof Error ? err.message : text.failedUpdate);
+        } finally {
+            setSaving(false);
         }
     };
+
+    const displayedPhoto = profilePhotoPreview || profile?.profile_photo_url || null;
 
     if (authLoading || loading) return <p className="p-6">{text.loading}</p>;
     if (error || !profile) return <p className="p-6 text-red-500">{error || text.notFound}</p>;
@@ -114,11 +157,24 @@ export default function PublicCoachProfilePage() {
     return (
         <div className="mx-auto max-w-5xl space-y-8 p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <p className="text-sm uppercase tracking-[0.25em] text-amber-300/80">
-                        {text.profileLabel}
-                    </p>
-                    <h1 className="mt-3 text-4xl font-black text-stone-100">{profile.username}</h1>
+                <div className="flex items-center gap-5">
+                    <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 text-3xl font-black text-amber-200">
+                        {displayedPhoto ? (
+                            <img
+                                src={displayedPhoto}
+                                alt={profile.username}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            profile.username.slice(0, 1).toUpperCase()
+                        )}
+                    </div>
+                    <div>
+                        <p className="text-sm uppercase tracking-[0.25em] text-amber-300/80">
+                            {text.profileLabel}
+                        </p>
+                        <h1 className="mt-3 text-4xl font-black text-stone-100">{profile.username}</h1>
+                    </div>
                 </div>
 
                 {isOwner && (
@@ -176,13 +232,39 @@ export default function PublicCoachProfilePage() {
                             />
                         </div>
 
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-400">
+                                {text.profilePhoto}
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                onChange={(e) => handleProfilePhotoChange(e.target.files?.[0] ?? null)}
+                                className="w-full rounded-xl border border-dashed border-zinc-700 bg-zinc-950 p-3 text-sm text-stone-300 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-500 file:px-4 file:py-2 file:font-semibold file:text-zinc-950"
+                            />
+                            <p className="mt-2 text-sm text-stone-500">{text.profilePhotoHint}</p>
+                            {profilePhotoPreview ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setProfilePhotoFile(null);
+                                        setProfilePhotoPreview(null);
+                                    }}
+                                    className="mt-3 text-sm font-medium text-amber-300 hover:text-amber-200"
+                                >
+                                    {text.removePhoto}
+                                </button>
+                            ) : null}
+                        </div>
+
                         <div className="flex items-end">
                             <button
                                 type="button"
                                 onClick={handleSave}
+                                disabled={saving}
                                 className="rounded-xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 hover:bg-amber-400"
                             >
-                                {text.saveChanges}
+                                {saving ? text.savingChanges : text.saveChanges}
                             </button>
                         </div>
                     </div>

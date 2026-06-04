@@ -5,6 +5,10 @@ import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
 import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
+import {
+    uploadProfileImageToCloudinary,
+    validateProfileImageFile,
+} from "@/app/lib/cloudinary";
 import { CoachProfile } from "@/app/types";
 
 export default function CoachProfilePage() {
@@ -16,6 +20,9 @@ export default function CoachProfilePage() {
     const [error, setError] = useState("");
     const [isEditing, setIsEditing] = useState(false);
     const [dateOfBirth, setDateOfBirth] = useState("");
+    const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+    const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
 
     const text = useMemo(
         () =>
@@ -40,7 +47,11 @@ export default function CoachProfilePage() {
               editDetails: "עריכת פרטים",
               profileDetails: "פרטי פרופיל",
               saveChanges: "שמור שינויים",
+              savingChanges: "שומר...",
               username: "שם משתמש",
+              profilePhoto: "תמונת פרופיל",
+              profilePhotoHint: "JPG או PNG עד 10MB.",
+              removePhoto: "הסר תמונה חדשה",
             }
         : {
               onlyCoaches: "Only coaches can view this page.",
@@ -62,7 +73,11 @@ export default function CoachProfilePage() {
               editDetails: "Edit Details",
               profileDetails: "Profile Details",
               saveChanges: "Save Changes",
+              savingChanges: "Saving...",
               username: "Username",
+              profilePhoto: "Profile Photo",
+              profilePhotoHint: "JPG or PNG up to 10MB.",
+              removePhoto: "Remove New Photo",
             },
         [isHebrew]
     );
@@ -78,6 +93,8 @@ export default function CoachProfilePage() {
             const res = await api.get("coaches-profiles/me/");
             setProfile(res.data);
             setDateOfBirth(res.data.date_of_birth ?? "");
+            setProfilePhotoFile(null);
+            setProfilePhotoPreview(null);
         } catch (err) {
             console.error(err);
             setError(text.failedLoad);
@@ -91,18 +108,40 @@ export default function CoachProfilePage() {
         void loadProfile();
     }, [authLoading, user, loadProfile]);
 
+    const handleProfilePhotoChange = (file: File | null) => {
+        if (!file) return;
+
+        try {
+            validateProfileImageFile(file);
+            setProfilePhotoFile(file);
+            setProfilePhotoPreview(URL.createObjectURL(file));
+            setError("");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : text.failedUpdate);
+        }
+    };
+
     const handleSave = async () => {
         if (!profile) return;
 
         try {
+            setSaving(true);
+            const profilePhotoUrl = profilePhotoFile
+                ? await uploadProfileImageToCloudinary(profilePhotoFile)
+                : profile.profile_photo_url ?? null;
+
             await api.patch(`coaches-profiles/${profile.id}/`, {
                 date_of_birth: dateOfBirth || null,
+                profile_photo_url: profilePhotoUrl,
             });
 
             setProfile({
                 ...profile,
                 date_of_birth: dateOfBirth || null,
+                profile_photo_url: profilePhotoUrl,
             });
+            setProfilePhotoFile(null);
+            setProfilePhotoPreview(null);
             showSuccess({
                 title: text.updatedTitle,
                 message: text.updatedMessage,
@@ -111,9 +150,13 @@ export default function CoachProfilePage() {
             setIsEditing(false);
         } catch (err) {
             console.error(err);
-            setError(text.failedUpdate);
+            setError(err instanceof Error ? err.message : text.failedUpdate);
+        } finally {
+            setSaving(false);
         }
     };
+
+    const displayedPhoto = profilePhotoPreview || profile?.profile_photo_url || null;
 
     if (authLoading || loading) return <p className="p-6">{text.loading}</p>;
     if (error || !profile) return <p className="p-6 text-red-500">{error || text.notFound}</p>;
@@ -123,7 +166,19 @@ export default function CoachProfilePage() {
             <section className="overflow-hidden rounded-4xl border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 shadow-2xl shadow-black/30">
                 <div className="border-b border-zinc-800 bg-amber-500/10 px-8 py-10">
                     <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
+                        <div className="flex items-center gap-5">
+                            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 text-3xl font-black text-amber-200">
+                                {displayedPhoto ? (
+                                    <img
+                                        src={displayedPhoto}
+                                        alt={profile.username}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    profile.username.slice(0, 1).toUpperCase()
+                                )}
+                            </div>
+                            <div>
                             <p className="text-sm uppercase tracking-[0.25em] text-amber-300/80">
                                 {text.profileLabel}
                             </p>
@@ -133,6 +188,7 @@ export default function CoachProfilePage() {
                             <p className="mt-3 max-w-2xl text-stone-400">
                                 {text.intro}
                             </p>
+                            </div>
                         </div>
 
                         <button
@@ -183,13 +239,39 @@ export default function CoachProfilePage() {
                             />
                         </div>
 
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-400">
+                                {text.profilePhoto}
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                onChange={(e) => handleProfilePhotoChange(e.target.files?.[0] ?? null)}
+                                className="w-full rounded-xl border border-dashed border-zinc-700 bg-zinc-950 p-3 text-sm text-stone-300 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-500 file:px-4 file:py-2 file:font-semibold file:text-zinc-950"
+                            />
+                            <p className="mt-2 text-sm text-stone-500">{text.profilePhotoHint}</p>
+                            {profilePhotoPreview ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setProfilePhotoFile(null);
+                                        setProfilePhotoPreview(null);
+                                    }}
+                                    className="mt-3 text-sm font-medium text-amber-300 hover:text-amber-200"
+                                >
+                                    {text.removePhoto}
+                                </button>
+                            ) : null}
+                        </div>
+
                         <div className="flex items-end">
                             <button
                                 type="button"
                                 onClick={handleSave}
+                                disabled={saving}
                                 className="rounded-xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 hover:bg-amber-400"
                             >
-                                {text.saveChanges}
+                                {saving ? text.savingChanges : text.saveChanges}
                             </button>
                         </div>
                     </div>
