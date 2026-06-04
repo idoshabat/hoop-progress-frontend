@@ -1,5 +1,10 @@
 const MAX_PROFILE_IMAGE_BYTES = 10 * 1024 * 1024;
 
+export type UploadedProfileImage = {
+  secureUrl: string;
+  publicId: string;
+};
+
 function getCloudinaryConfig() {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
@@ -36,5 +41,8 @@ export async function uploadProfileImageToCloudinary(file: File) {
   }
 
   const data = await res.json();
-  return data.secure_url as string;
+  return {
+    secureUrl: data.secure_url as string,
+    publicId: data.public_id as string,
+  } satisfies UploadedProfileImage;
 }

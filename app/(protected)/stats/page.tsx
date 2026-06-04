@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import api from "@/app/lib/axios";
 import { StatsOverview } from "@/app/types";
 import StatsSkeleton from "@/app/Components/StatsSkeleton";
+import ErrorState from "@/app/Components/ErrorState";
 import {
     ResponsiveContainer,
     LineChart,
@@ -76,7 +77,19 @@ export default function StatsPage() {
     if (loading){
         return <StatsSkeleton />
     }
-    if (error || !stats) return <p className="p-6 text-red-500">{error}</p>;
+    if (error || !stats)
+        return (
+            <ErrorState
+                title={isHebrew ? "לא הצלחנו לטעון את הסטטיסטיקות" : "We couldn't load the stats"}
+                description={error || text.failed}
+                actionLabel={isHebrew ? "נסה שוב" : "Try again"}
+                onAction={() => {
+                    setLoading(true);
+                    setError("");
+                    void loadStats();
+                }}
+            />
+        );
 
     /* ---------- PIE DATA ---------- */
     const statusPieData = [

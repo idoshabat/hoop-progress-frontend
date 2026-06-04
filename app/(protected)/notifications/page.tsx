@@ -7,6 +7,7 @@ import PageHero from '@/app/Components/PageHero';
 import SearchToolbar from '@/app/Components/SearchToolbar';
 import SectionSurface from '@/app/Components/SectionSurface';
 import StatCard from '@/app/Components/StatCard';
+import { useAuth } from '@/app/Context/AuthContext';
 import { useLanguage } from '@/app/Context/LanguageContext';
 import { useNotifications } from '@/app/hooks/useNotifications';
 import type { Notification } from '@/app/types';
@@ -28,15 +29,20 @@ function getNotificationIcon(type: string) {
   }
 }
 
-function getNotificationLink(notification: Notification) {
+function getNotificationLink(notification: Notification, role?: 'PLAYER' | 'COACH') {
   switch (notification.notification_type) {
     case 'WORKOUT_ASSIGNED':
     case 'WORKOUT_COMPLETED':
     case 'SESSION_ADDED':
       return `/workouts/${notification.related_workout}`;
     case 'CONNECTION_ACCEPTED':
+      if (notification.related_user_username) {
+        const targetRole = role === 'COACH' ? 'player' : 'coach';
+        return `/profile-lookup?role=${targetRole}&username=${encodeURIComponent(notification.related_user_username)}`;
+      }
+      return role === 'COACH' ? '/coach-dashboard/manage' : '/my-coaches/manage';
     case 'CONNECTION_REQUESTED':
-      return '/my-coaches';
+      return role === 'COACH' ? '/coach-dashboard/manage' : '/my-coaches/manage';
     default:
       return '#';
   }
@@ -81,6 +87,7 @@ function formatTime(dateString: string, locale: string, isHebrew: boolean): stri
 }
 
 export default function NotificationsPage() {
+  const { user } = useAuth();
   const { isHebrew, language } = useLanguage();
   const {
     notifications,
@@ -328,7 +335,7 @@ export default function NotificationsPage() {
                         ) : null}
 
                         <Link
-                          href={getNotificationLink(notification)}
+                          href={getNotificationLink(notification, user?.role)}
                           className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
                         >
                           {text.view}

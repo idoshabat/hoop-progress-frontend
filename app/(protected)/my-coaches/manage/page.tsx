@@ -4,6 +4,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/app/lib/axios";
 import PageHero from "@/app/Components/PageHero";
+import ErrorState from "@/app/Components/ErrorState";
+import InlineAlert from "@/app/Components/InlineAlert";
 import SearchToolbar from "@/app/Components/SearchToolbar";
 import SectionSurface from "@/app/Components/SectionSurface";
 import StatCard from "@/app/Components/StatCard";
@@ -31,6 +33,23 @@ function getErrorMessage(error: unknown, fallback: string) {
     return fallback;
 }
 
+function renderProfileAvatar(username: string, profilePhotoUrl?: string | null) {
+    const initial = username.trim().charAt(0).toUpperCase() || "?";
+
+    return (
+        <div className="flex h-18 w-18 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-700 bg-linear-to-br from-zinc-900 via-zinc-950 to-amber-500/20 text-2xl font-black text-amber-200 shadow-[0_16px_40px_rgba(0,0,0,0.28)]">
+            {profilePhotoUrl ? (
+                <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={profilePhotoUrl} alt={username} className="h-full w-full object-cover" />
+                </>
+            ) : (
+                <span>{initial}</span>
+            )}
+        </div>
+    );
+}
+
 export default function ManageCoachesPage() {
     const { user, loading: authLoading } = useAuth();
     const { isHebrew, language } = useLanguage();
@@ -38,11 +57,11 @@ export default function ManageCoachesPage() {
     const [coaches, setCoaches] = useState<CoachProfile[]>([]);
     const [incomingRequests, setIncomingRequests] = useState<ConnectionRequest[]>([]);
     const [outgoingRequests, setOutgoingRequests] = useState<ConnectionRequest[]>([]);
-    const [searchedCoach, setSearchedCoach] = useState<CoachProfile | null>(null);
+    const [searchedCoaches, setSearchedCoaches] = useState<CoachProfile[]>([]);
     const [searchUsername, setSearchUsername] = useState("");
     const [loading, setLoading] = useState(true);
     const [searching, setSearching] = useState(false);
-    const [updatingCoach, setUpdatingCoach] = useState(false);
+    const [updatingCoachId, setUpdatingCoachId] = useState<number | null>(null);
     const [respondingRequestId, setRespondingRequestId] = useState<number | null>(null);
     const [error, setError] = useState("");
     const [searchMessage, setSearchMessage] = useState("");
@@ -200,7 +219,7 @@ export default function ManageCoachesPage() {
 
         const trimmedUsername = searchUsername.trim();
         if (!trimmedUsername) {
-            setSearchedCoach(null);
+            setSearchedCoaches([]);
             setSearchMessage(text.emptyUsername);
             return;
         }
@@ -214,18 +233,22 @@ export default function ManageCoachesPage() {
                 params: { username: trimmedUsername },
             });
 
-            const coach = Array.isArray(res.data) ? res.data[0] : res.data;
+            const nextCoaches = Array.isArray(res.data)
+                ? res.data
+                : res.data
+                  ? [res.data]
+                  : [];
 
-            if (!coach) {
-                setSearchedCoach(null);
+            if (nextCoaches.length === 0) {
+                setSearchedCoaches([]);
                 setSearchMessage(text.noSuchCoach);
                 return;
             }
 
-            setSearchedCoach(coach);
+            setSearchedCoaches(nextCoaches);
         } catch (err: unknown) {
             console.error(err);
-            setSearchedCoach(null);
+            setSearchedCoaches([]);
 
             const status =
                 typeof err === "object" &&
@@ -244,43 +267,43 @@ export default function ManageCoachesPage() {
         }
     };
 
-    const handleCoachRequest = async () => {
-        if (!searchedCoach) return;
+    const handleCoachRequest = async (coach: CoachProfile) => {
+        if (!coach) return;
 
         try {
-            setUpdatingCoach(true);
+            setUpdatingCoachId(coach.id);
             setActionMessage("");
-            await api.post("add-coach-to-player/", { coach_id: searchedCoach.id });
+            await api.post("add-coach-to-player/", { coach_id: coach.id });
             await loadPageData();
             showSuccess({
                 title: text.requestSentTitle,
-                message: text.requestSentMessage(searchedCoach.username),
+                message: text.requestSentMessage(coach.username),
             });
         } catch (err) {
             console.error(err);
             setActionMessage(getErrorMessage(err, text.failedRequest));
         } finally {
-            setUpdatingCoach(false);
+            setUpdatingCoachId(null);
         }
     };
 
-    const handleRemoveCoach = async () => {
-        if (!searchedCoach) return;
+    const handleRemoveCoach = async (coach: CoachProfile) => {
+        if (!coach) return;
 
         try {
-            setUpdatingCoach(true);
+            setUpdatingCoachId(coach.id);
             setActionMessage("");
-            await api.post("remove-coach-from-player/", { coach_id: searchedCoach.id });
+            await api.post("remove-coach-from-player/", { coach_id: coach.id });
             await loadPageData();
             showSuccess({
                 title: text.coachRemovedTitle,
-                message: text.coachRemovedMessage(searchedCoach.username),
+                message: text.coachRemovedMessage(coach.username),
             });
         } catch (err) {
             console.error(err);
             setActionMessage(getErrorMessage(err, text.failedRemove));
         } finally {
-            setUpdatingCoach(false);
+            setUpdatingCoachId(null);
         }
     };
 
@@ -302,19 +325,42 @@ export default function ManageCoachesPage() {
         }
     };
 
-    if (authLoading || loading) return <p className="p-6">{text.loading}</p>;
-    if (!user) return <p className="p-6">{text.loginRequired}</p>;
-    if (user.role !== "PLAYER") return <p className="p-6 text-red-500">{text.accessDenied}</p>;
-    if (error) return <p className="p-6 text-red-500">{error}</p>;
+    if (authLoading || loading) return <p className="p-6 text-stone-400">{text.loading}</p>;
+    if (!user)
+        return (
+            <ErrorState
+                title={isHebrew ? "יש להתחבר כדי להמשיך" : "Please log in to continue"}
+                description={text.loginRequired}
+                actionLabel={isHebrew ? "לעמוד ההתחברות" : "Go to login"}
+                actionHref="/login"
+                tone="warning"
+            />
+        );
+    if (user.role !== "PLAYER")
+        return (
+            <ErrorState
+                title={isHebrew ? "העמוד הזה זמין לשחקנים בלבד" : "This page is for players only"}
+                description={text.accessDenied}
+                actionLabel={isHebrew ? "חזרה לדף הבית" : "Back to home"}
+                actionHref="/"
+                tone="warning"
+            />
+        );
+    if (error)
+        return (
+            <ErrorState
+                title={isHebrew ? "לא הצלחנו לטעון את ניהול המאמנים" : "We couldn't load coach management"}
+                description={error}
+                actionLabel={isHebrew ? "נסה שוב" : "Try again"}
+                onAction={() => {
+                    setLoading(true);
+                    setError("");
+                    void loadPageData().finally(() => setLoading(false));
+                }}
+            />
+        );
 
     const locale = language === "he" ? "he-IL" : "en-US";
-    const isCurrentCoach = searchedCoach ? coaches.some((coach) => coach.id === searchedCoach.id) : false;
-    const incomingRequestForSearchedCoach = searchedCoach
-        ? incomingRequests.find((request) => request.sender.id === searchedCoach.id)
-        : undefined;
-    const outgoingRequestForSearchedCoach = searchedCoach
-        ? outgoingRequests.find((request) => request.receiver.id === searchedCoach.id)
-        : undefined;
     const filteredIncomingRequests = incomingRequests.filter((request) =>
         request.sender_username.toLowerCase().includes(requestQuery.trim().toLowerCase())
     );
@@ -366,66 +412,90 @@ export default function ManageCoachesPage() {
                     </button>
                 </form>
 
-                {searchMessage && <p className="mt-3 text-sm text-red-400">{searchMessage}</p>}
-                {actionMessage && <p className="mt-3 text-sm text-red-400">{actionMessage}</p>}
+                {searchMessage ? <div className="mt-3"><InlineAlert message={searchMessage} /></div> : null}
+                {actionMessage ? <div className="mt-3"><InlineAlert message={actionMessage} /></div> : null}
 
-                {searchedCoach ? (
-                    <div className="mt-6 rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.2)]">
-                        <Link
-                            href={`/coach-profile/${searchedCoach.id}`}
-                            className="text-xl font-bold text-stone-100 hover:text-amber-300"
-                        >
-                            {searchedCoach.username}
-                        </Link>
-                        <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
-                            <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.dateOfBirth}</p>
-                            <p className="mt-2 font-medium text-stone-200">
-                                {searchedCoach.date_of_birth || text.notAvailable}
-                            </p>
-                        </div>
+                {searchedCoaches.length > 0 ? (
+                    <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                        {searchedCoaches.map((searchedCoach) => {
+                            const isCurrentCoach = coaches.some((coach) => coach.id === searchedCoach.id);
+                            const incomingRequestForSearchedCoach = incomingRequests.find(
+                                (request) => request.sender.id === searchedCoach.id
+                            );
+                            const outgoingRequestForSearchedCoach = outgoingRequests.find(
+                                (request) => request.receiver.id === searchedCoach.id
+                            );
+                            const isUpdatingThisCoach = updatingCoachId === searchedCoach.id;
 
-                        {isCurrentCoach ? (
-                            <button
-                                type="button"
-                                disabled={updatingCoach}
-                                onClick={handleRemoveCoach}
-                                className="mt-5 rounded-2xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
-                            >
-                                {updatingCoach ? text.saving : text.removeCoach}
-                            </button>
-                        ) : incomingRequestForSearchedCoach ? (
-                            <div className="mt-5 flex flex-wrap gap-3">
-                                <button
-                                    type="button"
-                                    disabled={respondingRequestId === incomingRequestForSearchedCoach.id}
-                                    onClick={() => handleRespondToRequest(incomingRequestForSearchedCoach.id, "accept")}
-                                    className="rounded-2xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                            return (
+                                <div
+                                    key={searchedCoach.id}
+                                    className="rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.2)]"
                                 >
-                                    {respondingRequestId === incomingRequestForSearchedCoach.id ? text.saving : text.acceptRequest}
-                                </button>
-                                <button
-                                    type="button"
-                                    disabled={respondingRequestId === incomingRequestForSearchedCoach.id}
-                                    onClick={() => handleRespondToRequest(incomingRequestForSearchedCoach.id, "reject")}
-                                    className="rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-3 font-semibold text-stone-200 transition hover:bg-zinc-800 disabled:opacity-50"
-                                >
-                                    {respondingRequestId === incomingRequestForSearchedCoach.id ? text.saving : text.rejectRequest}
-                                </button>
-                            </div>
-                        ) : outgoingRequestForSearchedCoach ? (
-                            <p className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm font-medium text-amber-300">
-                                {text.requestPending}
-                            </p>
-                        ) : (
-                            <button
-                                type="button"
-                                disabled={updatingCoach}
-                                onClick={handleCoachRequest}
-                                className="mt-5 rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
-                            >
-                                {updatingCoach ? text.sending : text.sendRequest}
-                            </button>
-                        )}
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                                        {renderProfileAvatar(searchedCoach.username, searchedCoach.profile_photo_url)}
+                                        <div className="min-w-0">
+                                            <p className="text-xs uppercase tracking-[0.24em] text-stone-500">{text.findCoach}</p>
+                                            <Link
+                                                href={`/coach-profile/${searchedCoach.id}`}
+                                                className="mt-1 block text-xl font-bold text-stone-100 transition hover:text-amber-300"
+                                            >
+                                                {searchedCoach.username}
+                                            </Link>
+                                        </div>
+                                    </div>
+                                    <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+                                        <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.dateOfBirth}</p>
+                                        <p className="mt-2 font-medium text-stone-200">
+                                            {searchedCoach.date_of_birth || text.notAvailable}
+                                        </p>
+                                    </div>
+
+                                    {isCurrentCoach ? (
+                                        <button
+                                            type="button"
+                                            disabled={isUpdatingThisCoach}
+                                            onClick={() => void handleRemoveCoach(searchedCoach)}
+                                            className="mt-5 rounded-2xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
+                                        >
+                                            {isUpdatingThisCoach ? text.saving : text.removeCoach}
+                                        </button>
+                                    ) : incomingRequestForSearchedCoach ? (
+                                        <div className="mt-5 flex flex-wrap gap-3">
+                                            <button
+                                                type="button"
+                                                disabled={respondingRequestId === incomingRequestForSearchedCoach.id}
+                                                onClick={() => handleRespondToRequest(incomingRequestForSearchedCoach.id, "accept")}
+                                                className="rounded-2xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                                            >
+                                                {respondingRequestId === incomingRequestForSearchedCoach.id ? text.saving : text.acceptRequest}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={respondingRequestId === incomingRequestForSearchedCoach.id}
+                                                onClick={() => handleRespondToRequest(incomingRequestForSearchedCoach.id, "reject")}
+                                                className="rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-3 font-semibold text-stone-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                                            >
+                                                {respondingRequestId === incomingRequestForSearchedCoach.id ? text.saving : text.rejectRequest}
+                                            </button>
+                                        </div>
+                                    ) : outgoingRequestForSearchedCoach ? (
+                                        <p className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm font-medium text-amber-300">
+                                            {text.requestPending}
+                                        </p>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            disabled={isUpdatingThisCoach}
+                                            onClick={() => void handleCoachRequest(searchedCoach)}
+                                            className="mt-5 rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
+                                        >
+                                            {isUpdatingThisCoach ? text.sending : text.sendRequest}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 ) : null}
             </SectionSurface>

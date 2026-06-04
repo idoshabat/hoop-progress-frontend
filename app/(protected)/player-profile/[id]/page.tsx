@@ -11,7 +11,23 @@ import {
     uploadProfileImageToCloudinary,
     validateProfileImageFile,
 } from "@/app/lib/cloudinary";
-import { PlayerProfile } from "@/app/types";
+import ErrorState from "@/app/Components/ErrorState";
+import InlineAlert from "@/app/Components/InlineAlert";
+import { ConnectionRequest, PlayerProfile } from "@/app/types";
+
+function matchesIncomingRequestForPlayer(request: ConnectionRequest, profile: PlayerProfile) {
+    return (
+        request.sender.id === profile.id ||
+        request.sender_username.toLowerCase() === profile.username.toLowerCase()
+    );
+}
+
+function matchesOutgoingRequestForPlayer(request: ConnectionRequest, profile: PlayerProfile) {
+    return (
+        request.receiver.id === profile.id ||
+        request.receiver_username.toLowerCase() === profile.username.toLowerCase()
+    );
+}
 
 export default function PublicPlayerProfilePage() {
     const params = useParams<{ id: string }>();
@@ -27,7 +43,12 @@ export default function PublicPlayerProfilePage() {
     const [dateOfBirth, setDateOfBirth] = useState("");
     const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
     const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
+    const [removeProfilePhoto, setRemoveProfilePhoto] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [incomingRequests, setIncomingRequests] = useState<ConnectionRequest[]>([]);
+    const [outgoingRequests, setOutgoingRequests] = useState<ConnectionRequest[]>([]);
+    const [viewerPlayers, setViewerPlayers] = useState<PlayerProfile[]>([]);
+    const [connectionActionLoading, setConnectionActionLoading] = useState(false);
 
     const text = isHebrew
         ? {
@@ -54,7 +75,21 @@ export default function PublicPlayerProfilePage() {
               username: "שם משתמש",
               profilePhoto: "תמונת פרופיל",
               profilePhotoHint: "JPG או PNG עד 10MB.",
-              removePhoto: "הסר תמונה חדשה",
+              removePhoto: "הסר תמונת פרופיל",
+              sendRequest: "הוסף שחקן",
+              removeConnection: "הסר שחקן",
+              requestPending: "בקשה ממתינה",
+              acceptRequest: "אשר בקשה",
+              rejectRequest: "דחה בקשה",
+              requestSentTitle: "הבקשה נשלחה",
+              requestSentMessage: "בקשת החיבור נשלחה בהצלחה.",
+              playerRemovedTitle: "השחקן הוסר",
+              playerRemovedMessage: "השחקן הוסר בהצלחה.",
+              requestAcceptedTitle: "הבקשה אושרה",
+              requestAcceptedMessage: "השחקן חובר לחשבון שלך.",
+              requestRejectedTitle: "הבקשה נדחתה",
+              requestRejectedMessage: "בקשת החיבור נדחתה.",
+              failedConnectionAction: "פעולת החיבור נכשלה.",
               pg: "רכז",
               sg: "קלע",
               sf: "סמול פורוורד",
@@ -85,7 +120,21 @@ export default function PublicPlayerProfilePage() {
               username: "Username",
               profilePhoto: "Profile Photo",
               profilePhotoHint: "JPG or PNG up to 10MB.",
-              removePhoto: "Remove New Photo",
+              removePhoto: "Remove Profile Photo",
+              sendRequest: "Add Player",
+              removeConnection: "Remove Player",
+              requestPending: "Request Pending",
+              acceptRequest: "Accept Request",
+              rejectRequest: "Reject Request",
+              requestSentTitle: "Request Sent",
+              requestSentMessage: "The connection request was sent successfully.",
+              playerRemovedTitle: "Player Removed",
+              playerRemovedMessage: "The player was removed successfully.",
+              requestAcceptedTitle: "Request Accepted",
+              requestAcceptedMessage: "The player is now connected to your account.",
+              requestRejectedTitle: "Request Rejected",
+              requestRejectedMessage: "The connection request was rejected.",
+              failedConnectionAction: "Connection action failed.",
               pg: "Point Guard",
               sg: "Shooting Guard",
               sf: "Small Forward",
@@ -95,13 +144,27 @@ export default function PublicPlayerProfilePage() {
 
     const loadProfile = useCallback(async () => {
         try {
-            const res = await api.get(`players-profiles/${params.id}/`);
-            setProfile(res.data);
-            setPosition(res.data.position);
-            setHeight(res.data.height_cm ?? "");
-            setDateOfBirth(res.data.date_of_birth ?? "");
+            const incomingRequestsPromise = api.get("connection-requests/", { params: { status: "pending" } });
+            const outgoingRequestsPromise = api.get("connection-requests/", {
+                params: { type: "outgoing", status: "pending" },
+            });
+            const mePromise = api.get("me/");
+            const [profileRes, incomingRequestsRes, outgoingRequestsRes, meRes] = await Promise.all([
+                api.get(`players-profiles/${params.id}/`),
+                incomingRequestsPromise,
+                outgoingRequestsPromise,
+                mePromise,
+            ]);
+            setProfile(profileRes.data);
+            setPosition(profileRes.data.position);
+            setHeight(profileRes.data.height_cm ?? "");
+            setDateOfBirth(profileRes.data.date_of_birth ?? "");
             setProfilePhotoFile(null);
             setProfilePhotoPreview(null);
+            setRemoveProfilePhoto(false);
+            setIncomingRequests(incomingRequestsRes.data || []);
+            setOutgoingRequests(outgoingRequestsRes.data || []);
+            setViewerPlayers(meRes.data.players || []);
         } catch (err) {
             console.error(err);
             setError(text.failedLoad);
@@ -116,6 +179,17 @@ export default function PublicPlayerProfilePage() {
     }, [authLoading, user, loadProfile]);
 
     const isOwner = !!profile && user?.role === "PLAYER" && user.username === profile.username;
+    const canManageConnection = !!profile && !!user && user.role === "COACH" && !isOwner;
+    const isConnectedToViewer =
+        canManageConnection && !!viewerPlayers.some((player) => player.id === profile?.id);
+    const incomingRequest =
+        canManageConnection && profile
+            ? incomingRequests.find((request) => matchesIncomingRequestForPlayer(request, profile))
+            : undefined;
+    const outgoingRequest =
+        canManageConnection && profile
+            ? outgoingRequests.find((request) => matchesOutgoingRequestForPlayer(request, profile))
+            : undefined;
 
     const handleProfilePhotoChange = (file: File | null) => {
         if (!file) return;
@@ -124,6 +198,7 @@ export default function PublicPlayerProfilePage() {
             validateProfileImageFile(file);
             setProfilePhotoFile(file);
             setProfilePhotoPreview(URL.createObjectURL(file));
+            setRemoveProfilePhoto(false);
             setError("");
         } catch (err) {
             setError(err instanceof Error ? err.message : text.failedUpdate);
@@ -135,15 +210,24 @@ export default function PublicPlayerProfilePage() {
 
         try {
             setSaving(true);
-            const profilePhotoUrl = profilePhotoFile
-                ? await uploadProfileImageToCloudinary(profilePhotoFile)
-                : profile.profile_photo_url ?? null;
+            let profilePhotoUrl = profile.profile_photo_url ?? null;
+            let profilePhotoPublicId = profile.profile_photo_public_id ?? null;
+
+            if (removeProfilePhoto) {
+                profilePhotoUrl = null;
+                profilePhotoPublicId = null;
+            } else if (profilePhotoFile) {
+                const uploadedImage = await uploadProfileImageToCloudinary(profilePhotoFile);
+                profilePhotoUrl = uploadedImage.secureUrl;
+                profilePhotoPublicId = uploadedImage.publicId;
+            }
 
             await api.patch(`players-profiles/${profile.id}/`, {
                 position,
                 height_cm: height,
                 date_of_birth: dateOfBirth || null,
                 profile_photo_url: profilePhotoUrl,
+                profile_photo_public_id: profilePhotoPublicId,
             });
 
             setProfile({
@@ -152,9 +236,11 @@ export default function PublicPlayerProfilePage() {
                 height_cm: height === "" ? undefined : height,
                 date_of_birth: dateOfBirth || null,
                 profile_photo_url: profilePhotoUrl,
+                profile_photo_public_id: profilePhotoPublicId,
             });
             setProfilePhotoFile(null);
             setProfilePhotoPreview(null);
+            setRemoveProfilePhoto(false);
             showSuccess({
                 title: text.updatedTitle,
                 message: text.updatedMessage,
@@ -169,10 +255,59 @@ export default function PublicPlayerProfilePage() {
         }
     };
 
-    const displayedPhoto = profilePhotoPreview || profile?.profile_photo_url || null;
+    const handleConnectionAction = async (action: "add" | "remove" | "accept" | "reject") => {
+        if (!profile || !canManageConnection) return;
 
-    if (authLoading || loading) return <p className="p-6">{text.loading}</p>;
-    if (error || !profile) return <p className="p-6 text-red-500">{error || text.notFound}</p>;
+        try {
+            setConnectionActionLoading(true);
+
+            if (action === "add") {
+                await api.post("add-player-to-coach/", { player_id: profile.id });
+                showSuccess({
+                    title: text.requestSentTitle,
+                    message: text.requestSentMessage,
+                });
+            }
+
+            if (action === "remove") {
+                await api.post("remove-player-from-coach/", { player_id: profile.id });
+                showSuccess({
+                    title: text.playerRemovedTitle,
+                    message: text.playerRemovedMessage,
+                });
+            }
+
+            if ((action === "accept" || action === "reject") && incomingRequest) {
+                await api.post(`connection-requests/${incomingRequest.id}/respond/`, { action });
+                showSuccess({
+                    title: action === "accept" ? text.requestAcceptedTitle : text.requestRejectedTitle,
+                    message: action === "accept" ? text.requestAcceptedMessage : text.requestRejectedMessage,
+                });
+            }
+
+            setError("");
+            await loadProfile();
+        } catch (err) {
+            console.error(err);
+            setError(err instanceof Error ? err.message : text.failedConnectionAction);
+        } finally {
+            setConnectionActionLoading(false);
+        }
+    };
+
+    const displayedPhoto =
+        profilePhotoPreview || (removeProfilePhoto ? null : profile?.profile_photo_url) || null;
+
+    if (authLoading || loading) return <p className="p-6 text-stone-400">{text.loading}</p>;
+    if (error || !profile)
+        return (
+            <ErrorState
+                title={isHebrew ? "לא הצלחנו לפתוח את פרופיל השחקן" : "We couldn't open this player profile"}
+                description={error || text.notFound}
+                actionLabel={isHebrew ? "חזרה" : "Go back"}
+                actionHref="/"
+            />
+        );
 
     return (
         <div className="mx-auto max-w-5xl space-y-8 p-6">
@@ -197,15 +332,61 @@ export default function PublicPlayerProfilePage() {
                     </div>
                 </div>
 
-                {isOwner && (
-                    <button
-                        type="button"
-                        onClick={() => setIsEditing((prev) => !prev)}
-                        className="rounded-xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 hover:bg-amber-400"
-                    >
-                        {isEditing ? text.cancelEditing : text.editProfile}
-                    </button>
-                )}
+                <div className="flex flex-wrap gap-3">
+                    {canManageConnection ? (
+                        isConnectedToViewer ? (
+                            <button
+                                type="button"
+                                disabled={connectionActionLoading}
+                                onClick={() => void handleConnectionAction("remove")}
+                                className="rounded-xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
+                            >
+                                {connectionActionLoading ? text.savingChanges : text.removeConnection}
+                            </button>
+                        ) : incomingRequest ? (
+                            <>
+                                <button
+                                    type="button"
+                                    disabled={connectionActionLoading}
+                                    onClick={() => void handleConnectionAction("accept")}
+                                    className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                                >
+                                    {connectionActionLoading ? text.savingChanges : text.acceptRequest}
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={connectionActionLoading}
+                                    onClick={() => void handleConnectionAction("reject")}
+                                    className="rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-3 font-semibold text-stone-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                                >
+                                    {connectionActionLoading ? text.savingChanges : text.rejectRequest}
+                                </button>
+                            </>
+                        ) : outgoingRequest ? (
+                            <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-5 py-3 font-semibold text-amber-300">
+                                {text.requestPending}
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                disabled={connectionActionLoading}
+                                onClick={() => void handleConnectionAction("add")}
+                                className="rounded-xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
+                            >
+                                {connectionActionLoading ? text.savingChanges : text.sendRequest}
+                            </button>
+                        )
+                    ) : null}
+                    {isOwner && (
+                        <button
+                            type="button"
+                            onClick={() => setIsEditing((prev) => !prev)}
+                            className="rounded-xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 hover:bg-amber-400"
+                        >
+                            {isEditing ? text.cancelEditing : text.editProfile}
+                        </button>
+                    )}
+                </div>
             </div>
             <section className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-950 shadow-2xl shadow-black/30">
                 <div className="grid gap-4 px-8 py-8 md:grid-cols-3">
@@ -227,6 +408,8 @@ export default function PublicPlayerProfilePage() {
                     </div>
                 </div>
             </section>
+
+            {error ? <InlineAlert message={error} /> : null}
 
             <section className="rounded-3xl border border-zinc-800 bg-zinc-900/90 p-8">
                 <div className="flex items-center justify-between gap-4">
@@ -300,11 +483,30 @@ export default function PublicPlayerProfilePage() {
                                     onClick={() => {
                                         setProfilePhotoFile(null);
                                         setProfilePhotoPreview(null);
+                                        setRemoveProfilePhoto(false);
                                     }}
                                     className="mt-3 text-sm font-medium text-amber-300 hover:text-amber-200"
                                 >
                                     {text.removePhoto}
                                 </button>
+                            ) : null}
+                            {!profilePhotoPreview && profile.profile_photo_url && !removeProfilePhoto ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setProfilePhotoFile(null);
+                                        setProfilePhotoPreview(null);
+                                        setRemoveProfilePhoto(true);
+                                    }}
+                                    className="mt-3 text-sm font-medium text-amber-300 hover:text-amber-200"
+                                >
+                                    {text.removePhoto}
+                                </button>
+                            ) : null}
+                            {removeProfilePhoto ? (
+                                <p className="mt-3 text-sm text-amber-300">
+                                    {isHebrew ? "התמונה תוסר לאחר שמירת השינויים." : "The photo will be removed after you save changes."}
+                                </p>
                             ) : null}
                         </div>
 

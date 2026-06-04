@@ -22,6 +22,7 @@ export default function CoachProfilePage() {
     const [dateOfBirth, setDateOfBirth] = useState("");
     const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
     const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
+    const [removeProfilePhoto, setRemoveProfilePhoto] = useState(false);
     const [saving, setSaving] = useState(false);
 
     const text = useMemo(
@@ -51,7 +52,7 @@ export default function CoachProfilePage() {
               username: "שם משתמש",
               profilePhoto: "תמונת פרופיל",
               profilePhotoHint: "JPG או PNG עד 10MB.",
-              removePhoto: "הסר תמונה חדשה",
+              removePhoto: "הסר תמונת פרופיל",
             }
         : {
               onlyCoaches: "Only coaches can view this page.",
@@ -77,7 +78,7 @@ export default function CoachProfilePage() {
               username: "Username",
               profilePhoto: "Profile Photo",
               profilePhotoHint: "JPG or PNG up to 10MB.",
-              removePhoto: "Remove New Photo",
+              removePhoto: "Remove Profile Photo",
             },
         [isHebrew]
     );
@@ -95,6 +96,7 @@ export default function CoachProfilePage() {
             setDateOfBirth(res.data.date_of_birth ?? "");
             setProfilePhotoFile(null);
             setProfilePhotoPreview(null);
+            setRemoveProfilePhoto(false);
         } catch (err) {
             console.error(err);
             setError(text.failedLoad);
@@ -115,6 +117,7 @@ export default function CoachProfilePage() {
             validateProfileImageFile(file);
             setProfilePhotoFile(file);
             setProfilePhotoPreview(URL.createObjectURL(file));
+            setRemoveProfilePhoto(false);
             setError("");
         } catch (err) {
             setError(err instanceof Error ? err.message : text.failedUpdate);
@@ -126,22 +129,33 @@ export default function CoachProfilePage() {
 
         try {
             setSaving(true);
-            const profilePhotoUrl = profilePhotoFile
-                ? await uploadProfileImageToCloudinary(profilePhotoFile)
-                : profile.profile_photo_url ?? null;
+            let profilePhotoUrl = profile.profile_photo_url ?? null;
+            let profilePhotoPublicId = profile.profile_photo_public_id ?? null;
+
+            if (removeProfilePhoto) {
+                profilePhotoUrl = null;
+                profilePhotoPublicId = null;
+            } else if (profilePhotoFile) {
+                const uploadedImage = await uploadProfileImageToCloudinary(profilePhotoFile);
+                profilePhotoUrl = uploadedImage.secureUrl;
+                profilePhotoPublicId = uploadedImage.publicId;
+            }
 
             await api.patch(`coaches-profiles/${profile.id}/`, {
                 date_of_birth: dateOfBirth || null,
                 profile_photo_url: profilePhotoUrl,
+                profile_photo_public_id: profilePhotoPublicId,
             });
 
             setProfile({
                 ...profile,
                 date_of_birth: dateOfBirth || null,
                 profile_photo_url: profilePhotoUrl,
+                profile_photo_public_id: profilePhotoPublicId,
             });
             setProfilePhotoFile(null);
             setProfilePhotoPreview(null);
+            setRemoveProfilePhoto(false);
             showSuccess({
                 title: text.updatedTitle,
                 message: text.updatedMessage,
@@ -156,7 +170,8 @@ export default function CoachProfilePage() {
         }
     };
 
-    const displayedPhoto = profilePhotoPreview || profile?.profile_photo_url || null;
+    const displayedPhoto =
+        profilePhotoPreview || (removeProfilePhoto ? null : profile?.profile_photo_url) || null;
 
     if (authLoading || loading) return <p className="p-6">{text.loading}</p>;
     if (error || !profile) return <p className="p-6 text-red-500">{error || text.notFound}</p>;
@@ -166,8 +181,8 @@ export default function CoachProfilePage() {
             <section className="overflow-hidden rounded-4xl border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 shadow-2xl shadow-black/30">
                 <div className="border-b border-zinc-800 bg-amber-500/10 px-8 py-10">
                     <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="flex items-center gap-5">
-                            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 text-3xl font-black text-amber-200">
+                        <div className="flex min-w-0 flex-col items-center gap-6 sm:flex-row sm:items-center">
+                            <div className="flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-zinc-900 bg-zinc-900 text-5xl font-black text-amber-200 shadow-[0_18px_40px_rgba(0,0,0,0.26)] md:h-48 md:w-48">
                                 {displayedPhoto ? (
                                     <img
                                         src={displayedPhoto}
@@ -178,16 +193,16 @@ export default function CoachProfilePage() {
                                     profile.username.slice(0, 1).toUpperCase()
                                 )}
                             </div>
-                            <div>
-                            <p className="text-sm uppercase tracking-[0.25em] text-amber-300/80">
-                                {text.profileLabel}
-                            </p>
-                            <h1 className="mt-3 text-4xl font-black text-stone-100">
-                                {profile.username}
-                            </h1>
-                            <p className="mt-3 max-w-2xl text-stone-400">
-                                {text.intro}
-                            </p>
+                            <div className="min-w-0 text-center sm:text-left">
+                                <p className="text-sm uppercase tracking-[0.25em] text-amber-300/80">
+                                    {text.profileLabel}
+                                </p>
+                                <h1 className="mt-3 text-4xl font-black text-stone-100">
+                                    {profile.username}
+                                </h1>
+                                <p className="mt-3 max-w-2xl text-stone-400">
+                                    {text.intro}
+                                </p>
                             </div>
                         </div>
 
@@ -243,6 +258,17 @@ export default function CoachProfilePage() {
                             <label className="mb-2 block text-sm font-medium text-stone-400">
                                 {text.profilePhoto}
                             </label>
+                            <div className="mb-4 flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-zinc-900 bg-zinc-900 text-3xl font-black text-amber-200 shadow-[0_12px_28px_rgba(0,0,0,0.22)]">
+                                {displayedPhoto ? (
+                                    <img
+                                        src={displayedPhoto}
+                                        alt={profile.username}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    profile.username.slice(0, 1).toUpperCase()
+                                )}
+                            </div>
                             <input
                                 type="file"
                                 accept="image/png,image/jpeg,image/webp"
@@ -256,11 +282,30 @@ export default function CoachProfilePage() {
                                     onClick={() => {
                                         setProfilePhotoFile(null);
                                         setProfilePhotoPreview(null);
+                                        setRemoveProfilePhoto(false);
                                     }}
                                     className="mt-3 text-sm font-medium text-amber-300 hover:text-amber-200"
                                 >
                                     {text.removePhoto}
                                 </button>
+                            ) : null}
+                            {!profilePhotoPreview && profile.profile_photo_url && !removeProfilePhoto ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setProfilePhotoFile(null);
+                                        setProfilePhotoPreview(null);
+                                        setRemoveProfilePhoto(true);
+                                    }}
+                                    className="mt-3 text-sm font-medium text-amber-300 hover:text-amber-200"
+                                >
+                                    {text.removePhoto}
+                                </button>
+                            ) : null}
+                            {removeProfilePhoto ? (
+                                <p className="mt-3 text-sm text-amber-300">
+                                    {isHebrew ? "התמונה תוסר לאחר שמירת השינויים." : "The photo will be removed after you save changes."}
+                                </p>
                             ) : null}
                         </div>
 

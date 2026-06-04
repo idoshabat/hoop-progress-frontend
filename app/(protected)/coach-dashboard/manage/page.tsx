@@ -4,6 +4,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/app/lib/axios";
 import PageHero from "@/app/Components/PageHero";
+import ErrorState from "@/app/Components/ErrorState";
+import InlineAlert from "@/app/Components/InlineAlert";
 import SearchToolbar from "@/app/Components/SearchToolbar";
 import SectionSurface from "@/app/Components/SectionSurface";
 import StatCard from "@/app/Components/StatCard";
@@ -31,6 +33,23 @@ function getErrorMessage(error: unknown, fallback: string) {
     return fallback;
 }
 
+function renderProfileAvatar(username: string, profilePhotoUrl?: string | null) {
+    const initial = username.trim().charAt(0).toUpperCase() || "?";
+
+    return (
+        <div className="flex h-18 w-18 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-700 bg-linear-to-br from-zinc-900 via-zinc-950 to-amber-500/20 text-2xl font-black text-amber-200 shadow-[0_16px_40px_rgba(0,0,0,0.28)]">
+            {profilePhotoUrl ? (
+                <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={profilePhotoUrl} alt={username} className="h-full w-full object-cover" />
+                </>
+            ) : (
+                <span>{initial}</span>
+            )}
+        </div>
+    );
+}
+
 export default function ManagePlayersPage() {
     const { user, loading: authLoading } = useAuth();
     const { isHebrew, language } = useLanguage();
@@ -38,11 +57,11 @@ export default function ManagePlayersPage() {
     const [players, setPlayers] = useState<PlayerProfile[]>([]);
     const [incomingRequests, setIncomingRequests] = useState<ConnectionRequest[]>([]);
     const [outgoingRequests, setOutgoingRequests] = useState<ConnectionRequest[]>([]);
-    const [searchedPlayer, setSearchedPlayer] = useState<PlayerProfile | null>(null);
+    const [searchedPlayers, setSearchedPlayers] = useState<PlayerProfile[]>([]);
     const [searchUsername, setSearchUsername] = useState("");
     const [loading, setLoading] = useState(true);
     const [searching, setSearching] = useState(false);
-    const [updatingPlayer, setUpdatingPlayer] = useState(false);
+    const [updatingPlayerId, setUpdatingPlayerId] = useState<number | null>(null);
     const [respondingRequestId, setRespondingRequestId] = useState<number | null>(null);
     const [error, setError] = useState("");
     const [searchMessage, setSearchMessage] = useState("");
@@ -204,7 +223,7 @@ export default function ManagePlayersPage() {
 
         const trimmedUsername = searchUsername.trim();
         if (!trimmedUsername) {
-            setSearchedPlayer(null);
+            setSearchedPlayers([]);
             setSearchMessage(text.emptyUsername);
             return;
         }
@@ -218,18 +237,22 @@ export default function ManagePlayersPage() {
                 params: { username: trimmedUsername },
             });
 
-            const player = Array.isArray(res.data) ? res.data[0] : res.data;
+            const nextPlayers = Array.isArray(res.data)
+                ? res.data
+                : res.data
+                  ? [res.data]
+                  : [];
 
-            if (!player) {
-                setSearchedPlayer(null);
+            if (nextPlayers.length === 0) {
+                setSearchedPlayers([]);
                 setSearchMessage(text.noSuchPlayer);
                 return;
             }
 
-            setSearchedPlayer(player);
+            setSearchedPlayers(nextPlayers);
         } catch (err: unknown) {
             console.error(err);
-            setSearchedPlayer(null);
+            setSearchedPlayers([]);
 
             const status =
                 typeof err === "object" &&
@@ -248,43 +271,43 @@ export default function ManagePlayersPage() {
         }
     };
 
-    const handlePlayerRequest = async () => {
-        if (!searchedPlayer) return;
+    const handlePlayerRequest = async (player: PlayerProfile) => {
+        if (!player) return;
 
         try {
-            setUpdatingPlayer(true);
+            setUpdatingPlayerId(player.id);
             setActionMessage("");
-            await api.post("add-player-to-coach/", { player_id: searchedPlayer.id });
+            await api.post("add-player-to-coach/", { player_id: player.id });
             await loadPageData();
             showSuccess({
                 title: text.requestSentTitle,
-                message: text.requestSentMessage(searchedPlayer.username),
+                message: text.requestSentMessage(player.username),
             });
         } catch (err) {
             console.error(err);
             setActionMessage(getErrorMessage(err, text.failedRequest));
         } finally {
-            setUpdatingPlayer(false);
+            setUpdatingPlayerId(null);
         }
     };
 
-    const handleRemovePlayer = async () => {
-        if (!searchedPlayer) return;
+    const handleRemovePlayer = async (player: PlayerProfile) => {
+        if (!player) return;
 
         try {
-            setUpdatingPlayer(true);
+            setUpdatingPlayerId(player.id);
             setActionMessage("");
-            await api.post("remove-player-from-coach/", { player_id: searchedPlayer.id });
+            await api.post("remove-player-from-coach/", { player_id: player.id });
             await loadPageData();
             showSuccess({
                 title: text.playerRemovedTitle,
-                message: text.playerRemovedMessage(searchedPlayer.username),
+                message: text.playerRemovedMessage(player.username),
             });
         } catch (err) {
             console.error(err);
             setActionMessage(getErrorMessage(err, text.failedRemove));
         } finally {
-            setUpdatingPlayer(false);
+            setUpdatingPlayerId(null);
         }
     };
 
@@ -306,19 +329,42 @@ export default function ManagePlayersPage() {
         }
     };
 
-    if (authLoading || loading) return <p className="p-6">{text.loading}</p>;
-    if (!user) return <p className="p-6">{text.loginRequired}</p>;
-    if (user.role !== "COACH") return <p className="p-6 text-red-500">{text.accessDenied}</p>;
-    if (error) return <p className="p-6 text-red-500">{error}</p>;
+    if (authLoading || loading) return <p className="p-6 text-stone-400">{text.loading}</p>;
+    if (!user)
+        return (
+            <ErrorState
+                title={isHebrew ? "יש להתחבר כדי להמשיך" : "Please log in to continue"}
+                description={text.loginRequired}
+                actionLabel={isHebrew ? "לעמוד ההתחברות" : "Go to login"}
+                actionHref="/login"
+                tone="warning"
+            />
+        );
+    if (user.role !== "COACH")
+        return (
+            <ErrorState
+                title={isHebrew ? "העמוד הזה זמין למאמנים בלבד" : "This page is for coaches only"}
+                description={text.accessDenied}
+                actionLabel={isHebrew ? "חזרה לדף הבית" : "Back to home"}
+                actionHref="/"
+                tone="warning"
+            />
+        );
+    if (error)
+        return (
+            <ErrorState
+                title={isHebrew ? "לא הצלחנו לטעון את ניהול השחקנים" : "We couldn't load player management"}
+                description={error}
+                actionLabel={isHebrew ? "נסה שוב" : "Try again"}
+                onAction={() => {
+                    setLoading(true);
+                    setError("");
+                    void loadPageData().finally(() => setLoading(false));
+                }}
+            />
+        );
 
     const locale = language === "he" ? "he-IL" : "en-US";
-    const isCurrentPlayer = searchedPlayer ? players.some((player) => player.id === searchedPlayer.id) : false;
-    const incomingRequestForSearchedPlayer = searchedPlayer
-        ? incomingRequests.find((request) => request.sender.id === searchedPlayer.id)
-        : undefined;
-    const outgoingRequestForSearchedPlayer = searchedPlayer
-        ? outgoingRequests.find((request) => request.receiver.id === searchedPlayer.id)
-        : undefined;
     const filteredIncomingRequests = incomingRequests.filter((request) =>
         request.sender_username.toLowerCase().includes(requestQuery.trim().toLowerCase())
     );
@@ -367,80 +413,104 @@ export default function ManagePlayersPage() {
                     </button>
                 </form>
 
-                {searchMessage && <p className="mt-3 text-sm text-red-400">{searchMessage}</p>}
-                {actionMessage && <p className="mt-3 text-sm text-red-400">{actionMessage}</p>}
+                {searchMessage ? <div className="mt-3"><InlineAlert message={searchMessage} /></div> : null}
+                {actionMessage ? <div className="mt-3"><InlineAlert message={actionMessage} /></div> : null}
 
-                {searchedPlayer ? (
-                    <div className="mt-6 rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.2)]">
-                        <Link
-                            href={`/player-profile/${searchedPlayer.id}`}
-                            className="text-xl font-bold text-stone-100 hover:text-amber-300"
-                        >
-                            {searchedPlayer.username}
-                        </Link>
-                        <div className="mt-5 grid gap-3">
-                            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
-                                <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.dateOfBirth}</p>
-                                <p className="mt-2 font-medium text-stone-200">
-                                    {searchedPlayer.date_of_birth || text.notAvailable}
-                                </p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
-                                    <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.position}</p>
-                                    <p className="mt-2 font-medium text-stone-200">{searchedPlayer.position}</p>
-                                </div>
-                                <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
-                                    <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.height}</p>
-                                    <p className="mt-2 font-medium text-stone-200">
-                                        {searchedPlayer.height_cm ? `${searchedPlayer.height_cm} cm` : text.notAvailable}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                {searchedPlayers.length > 0 ? (
+                    <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                        {searchedPlayers.map((searchedPlayer) => {
+                            const isCurrentPlayer = players.some((player) => player.id === searchedPlayer.id);
+                            const incomingRequestForSearchedPlayer = incomingRequests.find(
+                                (request) => request.sender.id === searchedPlayer.id
+                            );
+                            const outgoingRequestForSearchedPlayer = outgoingRequests.find(
+                                (request) => request.receiver.id === searchedPlayer.id
+                            );
+                            const isUpdatingThisPlayer = updatingPlayerId === searchedPlayer.id;
 
-                        {isCurrentPlayer ? (
-                            <button
-                                type="button"
-                                disabled={updatingPlayer}
-                                onClick={handleRemovePlayer}
-                                className="mt-5 rounded-2xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
-                            >
-                                {updatingPlayer ? text.saving : text.removePlayer}
-                            </button>
-                        ) : incomingRequestForSearchedPlayer ? (
-                            <div className="mt-5 flex flex-wrap gap-3">
-                                <button
-                                    type="button"
-                                    disabled={respondingRequestId === incomingRequestForSearchedPlayer.id}
-                                    onClick={() => handleRespondToRequest(incomingRequestForSearchedPlayer.id, "accept")}
-                                    className="rounded-2xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                            return (
+                                <div
+                                    key={searchedPlayer.id}
+                                    className="rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.2)]"
                                 >
-                                    {respondingRequestId === incomingRequestForSearchedPlayer.id ? text.saving : text.acceptRequest}
-                                </button>
-                                <button
-                                    type="button"
-                                    disabled={respondingRequestId === incomingRequestForSearchedPlayer.id}
-                                    onClick={() => handleRespondToRequest(incomingRequestForSearchedPlayer.id, "reject")}
-                                    className="rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-3 font-semibold text-stone-200 transition hover:bg-zinc-800 disabled:opacity-50"
-                                >
-                                    {respondingRequestId === incomingRequestForSearchedPlayer.id ? text.saving : text.rejectRequest}
-                                </button>
-                            </div>
-                        ) : outgoingRequestForSearchedPlayer ? (
-                            <p className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm font-medium text-amber-300">
-                                {text.requestPending}
-                            </p>
-                        ) : (
-                            <button
-                                type="button"
-                                disabled={updatingPlayer}
-                                onClick={handlePlayerRequest}
-                                className="mt-5 rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
-                            >
-                                {updatingPlayer ? text.sending : text.sendRequest}
-                            </button>
-                        )}
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                                        {renderProfileAvatar(searchedPlayer.username, searchedPlayer.profile_photo_url)}
+                                        <div className="min-w-0">
+                                            <p className="text-xs uppercase tracking-[0.24em] text-stone-500">{text.findPlayer}</p>
+                                            <Link
+                                                href={`/player-profile/${searchedPlayer.id}`}
+                                                className="mt-1 block text-xl font-bold text-stone-100 transition hover:text-amber-300"
+                                            >
+                                                {searchedPlayer.username}
+                                            </Link>
+                                        </div>
+                                    </div>
+                                    <div className="mt-5 grid gap-3">
+                                        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+                                            <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.dateOfBirth}</p>
+                                            <p className="mt-2 font-medium text-stone-200">
+                                                {searchedPlayer.date_of_birth || text.notAvailable}
+                                            </p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+                                                <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.position}</p>
+                                                <p className="mt-2 font-medium text-stone-200">{searchedPlayer.position}</p>
+                                            </div>
+                                            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+                                                <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{text.height}</p>
+                                                <p className="mt-2 font-medium text-stone-200">
+                                                    {searchedPlayer.height_cm ? `${searchedPlayer.height_cm} cm` : text.notAvailable}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {isCurrentPlayer ? (
+                                        <button
+                                            type="button"
+                                            disabled={isUpdatingThisPlayer}
+                                            onClick={() => void handleRemovePlayer(searchedPlayer)}
+                                            className="mt-5 rounded-2xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
+                                        >
+                                            {isUpdatingThisPlayer ? text.saving : text.removePlayer}
+                                        </button>
+                                    ) : incomingRequestForSearchedPlayer ? (
+                                        <div className="mt-5 flex flex-wrap gap-3">
+                                            <button
+                                                type="button"
+                                                disabled={respondingRequestId === incomingRequestForSearchedPlayer.id}
+                                                onClick={() => handleRespondToRequest(incomingRequestForSearchedPlayer.id, "accept")}
+                                                className="rounded-2xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                                            >
+                                                {respondingRequestId === incomingRequestForSearchedPlayer.id ? text.saving : text.acceptRequest}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={respondingRequestId === incomingRequestForSearchedPlayer.id}
+                                                onClick={() => handleRespondToRequest(incomingRequestForSearchedPlayer.id, "reject")}
+                                                className="rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-3 font-semibold text-stone-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                                            >
+                                                {respondingRequestId === incomingRequestForSearchedPlayer.id ? text.saving : text.rejectRequest}
+                                            </button>
+                                        </div>
+                                    ) : outgoingRequestForSearchedPlayer ? (
+                                        <p className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm font-medium text-amber-300">
+                                            {text.requestPending}
+                                        </p>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            disabled={isUpdatingThisPlayer}
+                                            onClick={() => void handlePlayerRequest(searchedPlayer)}
+                                            className="mt-5 rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
+                                        >
+                                            {isUpdatingThisPlayer ? text.sending : text.sendRequest}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 ) : null}
             </SectionSurface>

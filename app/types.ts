@@ -2,6 +2,8 @@ export type User = {
   id: number;
   username: string;
   role?: "PLAYER" | "COACH";
+  profile_photo_url?: string | null;
+  profile_photo_public_id?: string | null;
   players?: PlayerProfile[]; // for coaches, list of their players
 };
 
@@ -12,6 +14,7 @@ export interface PlayerProfile {
     height_cm?: number;
     date_of_birth?: string | null;
     profile_photo_url?: string | null;
+    profile_photo_public_id?: string | null;
     coaches : CoachProfile[];
 }
 
@@ -20,6 +23,7 @@ export interface CoachProfile {
     username:string;
     date_of_birth?: string | null;
     profile_photo_url?: string | null;
+    profile_photo_public_id?: string | null;
     players: PlayerProfile[];
 }
 

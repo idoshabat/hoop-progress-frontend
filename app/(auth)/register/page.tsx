@@ -118,9 +118,12 @@ export default function RegisterPage() {
 
     try {
       let profilePhotoUrl: string | null = null;
+      let profilePhotoPublicId: string | null = null;
 
       if (profilePhotoFile) {
-        profilePhotoUrl = await uploadProfileImageToCloudinary(profilePhotoFile);
+        const uploadedImage = await uploadProfileImageToCloudinary(profilePhotoFile);
+        profilePhotoUrl = uploadedImage.secureUrl;
+        profilePhotoPublicId = uploadedImage.publicId;
       }
 
       const body: {
@@ -129,6 +132,7 @@ export default function RegisterPage() {
         role: "PLAYER" | "COACH" | null;
         date_of_birth: string | null;
         profile_photo_url?: string | null;
+        profile_photo_public_id?: string | null;
         position?: string;
         height_cm?: number | null;
       } = {
@@ -137,6 +141,7 @@ export default function RegisterPage() {
         role,
         date_of_birth: dateOfBirth || null,
         profile_photo_url: profilePhotoUrl,
+        profile_photo_public_id: profilePhotoPublicId,
       };
 
       if (role === "PLAYER") {

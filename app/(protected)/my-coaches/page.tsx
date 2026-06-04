@@ -6,6 +6,7 @@ import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
 import EmptyState from "@/app/Components/EmptyState";
+import ErrorState from "@/app/Components/ErrorState";
 import PageHero from "@/app/Components/PageHero";
 import PendingRequestsBanner from "@/app/Components/PendingRequestsBanner";
 import SearchToolbar from "@/app/Components/SearchToolbar";
@@ -103,19 +104,46 @@ export default function MyCoachesPage() {
     }, [authLoading, user, loadCoaches]);
 
     if (authLoading || loading) {
-        return <p className="p-6">{text.loading}</p>;
+        return <p className="p-6 text-stone-400">{text.loading}</p>;
     }
 
     if (!user) {
-        return <p className="p-6">{text.loginRequired}</p>;
+        return (
+            <ErrorState
+                title={isHebrew ? "יש להתחבר כדי להמשיך" : "Please log in to continue"}
+                description={text.loginRequired}
+                actionLabel={isHebrew ? "לעמוד ההתחברות" : "Go to login"}
+                actionHref="/login"
+                tone="warning"
+            />
+        );
     }
 
     if (user.role !== "PLAYER") {
-        return <p className="p-6 text-red-500">{text.accessDenied}</p>;
+        return (
+            <ErrorState
+                title={isHebrew ? "העמוד הזה לא זמין עבור החשבון הזה" : "This page isn't available for this account"}
+                description={text.accessDenied}
+                actionLabel={isHebrew ? "חזרה לדף הבית" : "Back to home"}
+                actionHref="/"
+                tone="warning"
+            />
+        );
     }
 
     if (error) {
-        return <p className="p-6 text-red-500">{error}</p>;
+        return (
+            <ErrorState
+                title={isHebrew ? "לא הצלחנו לטעון את המאמנים שלך" : "We couldn't load your coaches"}
+                description={error}
+                actionLabel={isHebrew ? "נסה שוב" : "Try again"}
+                onAction={() => {
+                    setLoading(true);
+                    setError("");
+                    void loadCoaches();
+                }}
+            />
+        );
     }
 
     return (

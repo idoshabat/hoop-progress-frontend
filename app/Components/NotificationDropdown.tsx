@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/app/Context/AuthContext';
 import { useLanguage } from '@/app/Context/LanguageContext';
 import type { Notification } from '@/app/types';
 
@@ -28,15 +29,20 @@ function getNotificationIcon(type: string) {
   }
 }
 
-function getNotificationLink(notification: Notification) {
+function getNotificationLink(notification: Notification, role?: 'PLAYER' | 'COACH') {
   switch (notification.notification_type) {
     case 'WORKOUT_ASSIGNED':
     case 'WORKOUT_COMPLETED':
     case 'SESSION_ADDED':
       return `/workouts/${notification.related_workout}`;
     case 'CONNECTION_ACCEPTED':
+      if (notification.related_user_username) {
+        const targetRole = role === 'COACH' ? 'player' : 'coach';
+        return `/profile-lookup?role=${targetRole}&username=${encodeURIComponent(notification.related_user_username)}`;
+      }
+      return role === 'COACH' ? '/coach-dashboard/manage' : '/my-coaches/manage';
     case 'CONNECTION_REQUESTED':
-      return '/my-coaches';
+      return role === 'COACH' ? '/coach-dashboard/manage' : '/my-coaches/manage';
     default:
       return '#';
   }
@@ -63,6 +69,7 @@ export default function NotificationDropdown({
   onMarkAsRead,
   onClose,
 }: NotificationDropdownProps) {
+  const { user } = useAuth();
   const { isHebrew, language } = useLanguage();
 
   const text = useMemo(
@@ -141,7 +148,7 @@ export default function NotificationDropdown({
                   </div>
 
                   <Link
-                    href={getNotificationLink(notification)}
+                    href={getNotificationLink(notification, user?.role)}
                     onClick={onClose}
                     className="block min-w-0 flex-1"
                   >

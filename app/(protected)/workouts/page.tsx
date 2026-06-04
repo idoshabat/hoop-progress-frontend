@@ -8,6 +8,8 @@ import { Workout } from "@/app/types";
 import WorkoutsSkeleton from "@/app/Components/WorkoutSkeleton";
 import WorkoutGroup from "@/app/Components/WorkoutGroup";
 import EmptyState from "@/app/Components/EmptyState";
+import ErrorState from "@/app/Components/ErrorState";
+import InlineAlert from "@/app/Components/InlineAlert";
 import PageHero from "@/app/Components/PageHero";
 import SearchToolbar from "@/app/Components/SearchToolbar";
 import StatCard from "@/app/Components/StatCard";
@@ -132,7 +134,18 @@ export default function WorkoutsPage() {
     }
 
     if (error) {
-        return <p className="mt-10 text-center text-red-500">{error}</p>;
+        return (
+            <ErrorState
+                title={isHebrew ? "לא הצלחנו לטעון את האימונים" : "We couldn't load your workouts"}
+                description={error}
+                actionLabel={isHebrew ? "נסה שוב" : "Try again"}
+                onAction={() => {
+                    setLoading(true);
+                    setError("");
+                    void loadWorkouts();
+                }}
+            />
+        );
     }
 
     const assignedByMeInProgress = assignedByMe.filter((workout) => !workout.is_completed);
@@ -215,6 +228,8 @@ export default function WorkoutsPage() {
                     <StatCard label={text.coachAssigned} value={assignedByMyCoaches.length} />
                 </div>
             </PageHero>
+
+            {error ? <InlineAlert message={error} /> : null}
 
             <div className="inline-flex w-full rounded-2xl border border-zinc-800 bg-zinc-900/90 p-1.5 sm:w-auto">
                 <button
