@@ -15,7 +15,10 @@ export default function ForgotPasswordPage() {
   const text = isHebrew
     ? {
         title: "שחזור סיסמה",
-        subtitle: "הזן את האימייל שלך ונשלח אליך קישור לאיפוס הסיסמה.",
+        subtitle:
+          "הזן את האימייל שלך ונשלח אליך קישור לאיפוס או להגדרת סיסמה חדשה לחשבון.",
+        helper:
+          "אם נרשמת עם Google, אפשר להשתמש בתהליך הזה כדי להגדיר סיסמה רגילה בנוסף להתחברות עם Google.",
         email: "אימייל",
         submit: "שלח קישור איפוס",
         sending: "שולח...",
@@ -25,7 +28,9 @@ export default function ForgotPasswordPage() {
       }
     : {
         title: "Forgot Password",
-        subtitle: "Enter your email and we will send you a password reset link.",
+        subtitle: "Enter your email and we will send you a link to reset or set a password.",
+        helper:
+          "If you signed up with Google, you can also use this flow to add a regular password to your account.",
         email: "Email",
         submit: "Send Reset Link",
         sending: "Sending...",
@@ -55,6 +60,9 @@ export default function ForgotPasswordPage() {
       <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900 p-8 shadow-lg shadow-black/30">
         <h1 className="text-3xl font-black text-stone-100">{text.title}</h1>
         <p className="mt-3 text-stone-400">{text.subtitle}</p>
+        <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3">
+          <p className="text-sm leading-6 text-amber-100/85">{text.helper}</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
           <input

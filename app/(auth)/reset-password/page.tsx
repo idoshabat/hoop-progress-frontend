@@ -30,6 +30,8 @@ function ResetPasswordContent() {
     ? {
         title: "איפוס סיסמה",
         subtitle: "בחר סיסמה חדשה לחשבון שלך.",
+        helper:
+          "אם החשבון שלך נוצר עם Google, הסיסמה שתגדיר כאן תאפשר לך להתחבר גם עם Google וגם עם שם משתמש וסיסמה.",
         newPassword: "סיסמה חדשה",
         confirmPassword: "אימות סיסמה חדשה",
         submit: "עדכן סיסמה",
@@ -43,6 +45,8 @@ function ResetPasswordContent() {
     : {
         title: "Reset Password",
         subtitle: "Choose a new password for your account.",
+        helper:
+          "If your account was created with Google, the password you set here will let you sign in with either Google or username and password.",
         newPassword: "New Password",
         confirmPassword: "Confirm New Password",
         submit: "Update Password",
@@ -105,6 +109,9 @@ function ResetPasswordContent() {
       <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900 p-8 shadow-lg shadow-black/30">
         <h1 className="text-3xl font-black text-stone-100">{text.title}</h1>
         <p className="mt-3 text-stone-400">{text.subtitle}</p>
+        <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+          <p className="text-sm leading-6 text-stone-300">{text.helper}</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
           <input
