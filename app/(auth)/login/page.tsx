@@ -5,13 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
+import api from "@/app/lib/axios";
+import GoogleAuthButton from "@/app/Components/GoogleAuthButton";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, completeLogin } = useAuth();
   const { isHebrew } = useLanguage();
 
   const text = isHebrew
@@ -22,7 +24,12 @@ export default function LoginPage() {
         username: "שם משתמש",
         password: "סיסמה",
         submit: "התחבר",
+        googleLogin: "המשך עם Google",
+        googleHint: "התחברות מהירה עם חשבון Google שלך",
+        divider: "או התחבר עם שם משתמש וסיסמה",
         failed: "ההתחברות נכשלה",
+        googleFailed: "התחברות עם Google נכשלה",
+        forgotPassword: "שכחת סיסמה?",
         createAccount: "אין לך חשבון עדיין?",
         createAccountLink: "ליצירת חשבון",
         highlightsTitle: "מה מחכה לך בפנים",
@@ -43,7 +50,12 @@ export default function LoginPage() {
         username: "Username",
         password: "Password",
         submit: "Login",
+        googleLogin: "Continue with Google",
+        googleHint: "Fast sign-in with your Google account",
+        divider: "Or continue with username and password",
         failed: "Login failed",
+        googleFailed: "Google login failed",
+        forgotPassword: "Forgot password?",
         createAccount: "Don&apos;t have an account yet?",
         createAccountLink: "Create one",
         highlightsTitle: "What you get inside",
@@ -72,6 +84,31 @@ export default function LoginPage() {
         typeof err.message === "string"
           ? err.message
           : text.failed;
+      setError(message);
+    }
+  };
+
+  const handleGoogleLogin = async (code: string) => {
+    setError("");
+
+    try {
+      const res = await api.post("login/google/", { code });
+      await completeLogin(res.data.access);
+      router.push("/");
+    } catch (err: unknown) {
+      const message =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof err.response === "object" &&
+        err.response !== null &&
+        "data" in err.response &&
+        typeof err.response.data === "object" &&
+        err.response.data !== null &&
+        "detail" in err.response.data &&
+        typeof err.response.data.detail === "string"
+          ? err.response.data.detail
+          : text.googleFailed;
       setError(message);
     }
   };
@@ -124,6 +161,20 @@ export default function LoginPage() {
 
         <section className="rounded-[2rem] border border-zinc-800 bg-zinc-900 p-8 shadow-lg shadow-black/30">
           <h2 className="text-2xl font-semibold text-stone-100">{text.title}</h2>
+          <div className="mt-6">
+            <GoogleAuthButton
+              label={text.googleLogin}
+              hint={text.googleHint}
+              onCodeReceived={handleGoogleLogin}
+            />
+          </div>
+
+          <div className="my-6 flex items-center gap-4">
+            <div className="h-px flex-1 bg-zinc-800" />
+            <p className="text-xs uppercase tracking-[0.22em] text-stone-500">{text.divider}</p>
+            <div className="h-px flex-1 bg-zinc-800" />
+          </div>
+
           <form onSubmit={handleLogin} className="mt-6 flex flex-col gap-3">
             <input
               type="text"
@@ -148,6 +199,12 @@ export default function LoginPage() {
               {text.submit}
             </button>
           </form>
+
+          <div className="mt-4">
+            <Link href="/forgot-password" className="text-sm font-medium text-amber-300 hover:text-amber-200">
+              {text.forgotPassword}
+            </Link>
+          </div>
 
           {error && <p className="mt-3 text-red-400">{error}</p>}
 

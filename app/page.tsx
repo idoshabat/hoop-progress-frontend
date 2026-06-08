@@ -335,6 +335,7 @@ export default function Home() {
   }
 
   const isCoach = user.role === "COACH";
+  const preferredName = user.first_name?.trim() || user.username;
   const actions = isCoach ? coachActionsText : playerActionsText;
 
   return (
@@ -362,7 +363,7 @@ export default function Home() {
             </div>
 
             <h1 className="mt-6 text-4xl font-black leading-tight text-stone-100 md:text-5xl">
-              {text.welcomeBack}, {user.username}.
+              {text.welcomeBack}, {preferredName}.
             </h1>
 
             <p className="mt-5 max-w-2xl text-lg leading-8 text-stone-400">

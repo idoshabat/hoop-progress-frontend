@@ -11,6 +11,7 @@ import {
     uploadProfileImageToCloudinary,
     validateProfileImageFile,
 } from "@/app/lib/cloudinary";
+import { getDisplayInitial } from "@/app/lib/getDisplayInitial";
 import ErrorState from "@/app/Components/ErrorState";
 import InlineAlert from "@/app/Components/InlineAlert";
 import LocalizedDateText from "@/app/Components/LocalizedDateText";
@@ -39,6 +40,8 @@ export default function PublicPlayerProfilePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [isEditing, setIsEditing] = useState(false);
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [position, setPosition] = useState("");
     const [height, setHeight] = useState<number | "">("");
     const [dateOfBirth, setDateOfBirth] = useState("");
@@ -74,6 +77,8 @@ export default function PublicPlayerProfilePage() {
               saveChanges: "שמור שינויים",
               savingChanges: "שומר...",
               username: "שם משתמש",
+              firstName: "שם פרטי",
+              lastName: "שם משפחה",
               profilePhoto: "תמונת פרופיל",
               profilePhotoHint: "JPG או PNG עד 10MB.",
               removePhoto: "הסר תמונת פרופיל",
@@ -119,6 +124,8 @@ export default function PublicPlayerProfilePage() {
               saveChanges: "Save Changes",
               savingChanges: "Saving...",
               username: "Username",
+              firstName: "First Name",
+              lastName: "Last Name",
               profilePhoto: "Profile Photo",
               profilePhotoHint: "JPG or PNG up to 10MB.",
               removePhoto: "Remove Profile Photo",
@@ -157,6 +164,8 @@ export default function PublicPlayerProfilePage() {
                 mePromise,
             ]);
             setProfile(profileRes.data);
+            setFirstName(profileRes.data.first_name ?? "");
+            setLastName(profileRes.data.last_name ?? "");
             setPosition(profileRes.data.position);
             setHeight(profileRes.data.height_cm ?? "");
             setDateOfBirth(profileRes.data.date_of_birth ?? "");
@@ -227,12 +236,16 @@ export default function PublicPlayerProfilePage() {
                 position,
                 height_cm: height,
                 date_of_birth: dateOfBirth || null,
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
                 profile_photo_url: profilePhotoUrl,
                 profile_photo_public_id: profilePhotoPublicId,
             });
 
             setProfile({
                 ...profile,
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
                 position: position as PlayerProfile["position"],
                 height_cm: height === "" ? undefined : height,
                 date_of_birth: dateOfBirth || null,
@@ -298,6 +311,7 @@ export default function PublicPlayerProfilePage() {
 
     const displayedPhoto =
         profilePhotoPreview || (removeProfilePhoto ? null : profile?.profile_photo_url) || null;
+    const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
 
     if (authLoading || loading) return <p className="p-6 text-stone-400">{text.loading}</p>;
     if (error || !profile)
@@ -322,14 +336,14 @@ export default function PublicPlayerProfilePage() {
                                 className="h-full w-full object-cover"
                             />
                         ) : (
-                            profile.username.slice(0, 1).toUpperCase()
+                            getDisplayInitial(profile.first_name, profile.username)
                         )}
                     </div>
                     <div>
                         <p className="text-sm uppercase tracking-[0.25em] text-amber-300/80">
                             {text.profileLabel}
                         </p>
-                        <h1 className="mt-3 text-4xl font-black text-stone-100">{profile.username}</h1>
+                        <h1 className="mt-3 text-4xl font-black text-stone-100">{fullName || profile.username}</h1>
                     </div>
                 </div>
 
@@ -424,6 +438,30 @@ export default function PublicPlayerProfilePage() {
 
                 {isEditing ? (
                     <div className="mt-6 grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-400">
+                                {text.firstName}
+                            </label>
+                            <input
+                                type="text"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-stone-100"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-400">
+                                {text.lastName}
+                            </label>
+                            <input
+                                type="text"
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-stone-100"
+                            />
+                        </div>
+
                         <div>
                             <label className="mb-2 block text-sm font-medium text-stone-400">
                                 {text.dateOfBirth}
@@ -528,6 +566,18 @@ export default function PublicPlayerProfilePage() {
                             <p className="text-sm text-stone-500">{text.username}</p>
                             <p className="mt-2 text-lg font-semibold text-stone-100">
                                 {profile.username}
+                            </p>
+                        </div>
+                        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
+                            <p className="text-sm text-stone-500">{text.firstName}</p>
+                            <p className="mt-2 text-lg font-semibold text-stone-100">
+                                {profile.first_name || text.notAvailable}
+                            </p>
+                        </div>
+                        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
+                            <p className="text-sm text-stone-500">{text.lastName}</p>
+                            <p className="mt-2 text-lg font-semibold text-stone-100">
+                                {profile.last_name || text.notAvailable}
                             </p>
                         </div>
                         <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">

@@ -1,6 +1,10 @@
 export type User = {
   id: number;
   username: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
   role?: "PLAYER" | "COACH";
   profile_photo_url?: string | null;
   profile_photo_public_id?: string | null;
@@ -10,6 +14,10 @@ export type User = {
 export interface PlayerProfile {
     id: number;
     username:string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    phone_number?: string;
     position: "PG" | "SG" | "SF" | "PF" | "C";
     height_cm?: number;
     date_of_birth?: string | null;
@@ -21,6 +29,10 @@ export interface PlayerProfile {
 export interface CoachProfile {
     id: number;
     username:string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    phone_number?: string;
     date_of_birth?: string | null;
     profile_photo_url?: string | null;
     profile_photo_public_id?: string | null;

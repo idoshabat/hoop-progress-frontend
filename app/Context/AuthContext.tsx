@@ -10,6 +10,7 @@ const ACCESS_TOKEN_STORAGE_KEY = "hp_access_token";
 type AuthContextType = {
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
+  completeLogin: (accessToken: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 };
@@ -127,6 +128,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (username: string, password: string) => {
     const res = await api.post("login/", { username, password });
     const access = res.data.access;
+    await completeLogin(access);
+  };
+
+  const completeLogin = async (accessToken: string) => {
+    const access = accessToken;
     persistAccessToken(access);
     await fetchMe();
   };
@@ -139,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, completeLogin, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

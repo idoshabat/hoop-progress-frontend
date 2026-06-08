@@ -10,6 +10,7 @@ import LocalizedDateText from "@/app/Components/LocalizedDateText";
 import SearchToolbar from "@/app/Components/SearchToolbar";
 import SectionSurface from "@/app/Components/SectionSurface";
 import StatCard from "@/app/Components/StatCard";
+import { getDisplayInitial } from "@/app/lib/getDisplayInitial";
 import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
 import { useSuccessFeedback } from "@/app/Context/SuccessFeedbackContext";
@@ -34,8 +35,12 @@ function getErrorMessage(error: unknown, fallback: string) {
     return fallback;
 }
 
-function renderProfileAvatar(username: string, profilePhotoUrl?: string | null) {
-    const initial = username.trim().charAt(0).toUpperCase() || "?";
+function renderProfileAvatar(
+    username: string,
+    firstName?: string | null,
+    profilePhotoUrl?: string | null
+) {
+    const initial = getDisplayInitial(firstName, username);
 
     return (
         <div className="flex h-18 w-18 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-700 bg-linear-to-br from-zinc-900 via-zinc-950 to-amber-500/20 text-2xl font-black text-amber-200 shadow-[0_16px_40px_rgba(0,0,0,0.28)]">
@@ -434,7 +439,7 @@ export default function ManageCoachesPage() {
                                     className="rounded-[1.5rem] border border-zinc-800 bg-linear-to-br from-zinc-900 to-zinc-950 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.2)]"
                                 >
                                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                                        {renderProfileAvatar(searchedCoach.username, searchedCoach.profile_photo_url)}
+                                        {renderProfileAvatar(searchedCoach.username, searchedCoach.first_name, searchedCoach.profile_photo_url)}
                                         <div className="min-w-0">
                                             <p className="text-xs uppercase tracking-[0.24em] text-stone-500">{text.findCoach}</p>
                                             <Link

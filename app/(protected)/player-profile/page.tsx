@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/app/lib/axios";
 import { useAuth } from "@/app/Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
@@ -9,17 +10,24 @@ import {
     uploadProfileImageToCloudinary,
     validateProfileImageFile,
 } from "@/app/lib/cloudinary";
+import { getDisplayInitial } from "@/app/lib/getDisplayInitial";
 import LocalizedDateText from "@/app/Components/LocalizedDateText";
+import ConfirmModal from "@/app/Components/ConfirmModal";
 import { PlayerProfile } from "@/app/types";
 
 export default function PlayerProfilePage() {
-    const { user, loading: authLoading } = useAuth();
+    const router = useRouter();
+    const { user, loading: authLoading, logout } = useAuth();
     const { isHebrew } = useLanguage();
     const { showSuccess } = useSuccessFeedback();
     const [profile, setProfile] = useState<PlayerProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [isEditing, setIsEditing] = useState(false);
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [email, setEmail] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
     const [position, setPosition] = useState("");
     const [height, setHeight] = useState<number | "">("");
     const [dateOfBirth, setDateOfBirth] = useState("");
@@ -27,6 +35,8 @@ export default function PlayerProfilePage() {
     const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
     const [removeProfilePhoto, setRemoveProfilePhoto] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [deletingAccount, setDeletingAccount] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const text = useMemo(
         () =>
@@ -54,9 +64,19 @@ export default function PlayerProfilePage() {
               saveChanges: "שמור שינויים",
               savingChanges: "שומר...",
               username: "שם משתמש",
+              email: "אימייל",
+              firstName: "שם פרטי",
+              lastName: "שם משפחה",
+              phoneNumber: "מספר טלפון",
               profilePhoto: "תמונת פרופיל",
               profilePhotoHint: "JPG או PNG עד 10MB.",
               removePhoto: "הסר תמונת פרופיל",
+              dangerZone: "אזור מסוכן",
+              deleteAccount: "מחק משתמש",
+              deleteAccountHint: "הפעולה תמחק לצמיתות את המשתמש, הפרופיל והמידע המשויך אליו.",
+              deleteAccountConfirm: "האם למחוק את המשתמש לצמיתות? אי אפשר לשחזר את הפעולה הזאת.",
+              deletingAccount: "מוחק משתמש...",
+              failedDeleteAccount: "מחיקת המשתמש נכשלה.",
               pg: "רכז",
               sg: "קלע",
               sf: "סמול פורוורד",
@@ -86,9 +106,19 @@ export default function PlayerProfilePage() {
               saveChanges: "Save Changes",
               savingChanges: "Saving...",
               username: "Username",
+              email: "Email",
+              firstName: "First Name",
+              lastName: "Last Name",
+              phoneNumber: "Phone Number",
               profilePhoto: "Profile Photo",
               profilePhotoHint: "JPG or PNG up to 10MB.",
               removePhoto: "Remove Profile Photo",
+              dangerZone: "Danger Zone",
+              deleteAccount: "Delete User",
+              deleteAccountHint: "This permanently deletes the user, the profile, and related account data.",
+              deleteAccountConfirm: "Delete this user permanently? This action cannot be undone.",
+              deletingAccount: "Deleting user...",
+              failedDeleteAccount: "Failed to delete user.",
               pg: "Point Guard",
               sg: "Shooting Guard",
               sf: "Small Forward",
@@ -108,6 +138,10 @@ export default function PlayerProfilePage() {
 
             const res = await api.get("players-profiles/me/");
             setProfile(res.data);
+            setFirstName(res.data.first_name ?? "");
+            setLastName(res.data.last_name ?? "");
+            setEmail(res.data.email ?? "");
+            setPhoneNumber(res.data.phone_number ?? "");
             setPosition(res.data.position);
             setHeight(res.data.height_cm ?? "");
             setDateOfBirth(res.data.date_of_birth ?? "");
@@ -162,12 +196,20 @@ export default function PlayerProfilePage() {
                 position,
                 height_cm: height,
                 date_of_birth: dateOfBirth || null,
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
+                email: email.trim(),
+                phone_number: phoneNumber.trim(),
                 profile_photo_url: profilePhotoUrl,
                 profile_photo_public_id: profilePhotoPublicId,
             });
 
             setProfile({
                 ...profile,
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
+                email: email.trim(),
+                phone_number: phoneNumber.trim(),
                 position: position as PlayerProfile["position"],
                 height_cm: height === "" ? undefined : height,
                 date_of_birth: dateOfBirth || null,
@@ -191,8 +233,24 @@ export default function PlayerProfilePage() {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        try {
+            setDeletingAccount(true);
+            await api.delete("delete-account/");
+            await logout();
+            router.replace("/login");
+        } catch (err) {
+            console.error(err);
+            setError(text.failedDeleteAccount);
+        } finally {
+            setDeletingAccount(false);
+            setShowDeleteModal(false);
+        }
+    };
+
     const displayedPhoto =
         profilePhotoPreview || (removeProfilePhoto ? null : profile?.profile_photo_url) || null;
+    const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
 
     if (authLoading || loading) return <p className="p-6">{text.loading}</p>;
     if (error || !profile) return <p className="p-6 text-red-500">{error || text.notFound}</p>;
@@ -211,16 +269,16 @@ export default function PlayerProfilePage() {
                                         className="h-full w-full object-cover"
                                     />
                                 ) : (
-                                    profile.username.slice(0, 1).toUpperCase()
+                                    getDisplayInitial(profile.first_name, profile.username)
                                 )}
                             </div>
                             <div className="min-w-0 text-center sm:text-left">
                                 <p className="text-sm uppercase tracking-[0.25em] text-amber-300/80">
                                     {text.profileLabel}
                                 </p>
-                                <h1 className="mt-3 text-4xl font-black text-stone-100">
-                                    {profile.username}
-                                </h1>
+                            <h1 className="mt-3 text-4xl font-black text-stone-100">
+                                {fullName || profile.username}
+                            </h1>
                                 <p className="mt-3 max-w-2xl text-stone-400">
                                     {text.intro}
                                 </p>
@@ -263,6 +321,54 @@ export default function PlayerProfilePage() {
 
                 {isEditing ? (
                     <div className="mt-6 grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-400">
+                                {text.firstName}
+                            </label>
+                            <input
+                                type="text"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-stone-100"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-400">
+                                {text.lastName}
+                            </label>
+                            <input
+                                type="text"
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-stone-100"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-400">
+                                {text.email}
+                            </label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-stone-100"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-400">
+                                {text.phoneNumber}
+                            </label>
+                            <input
+                                type="tel"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-stone-100"
+                            />
+                        </div>
+
                         <div>
                             <label className="mb-2 block text-sm font-medium text-stone-400">
                                 {text.dateOfBirth}
@@ -318,7 +424,7 @@ export default function PlayerProfilePage() {
                                         className="h-full w-full object-cover"
                                     />
                                 ) : (
-                                    profile.username.slice(0, 1).toUpperCase()
+                                    getDisplayInitial(profile.first_name, profile.username)
                                 )}
                             </div>
                             <input
@@ -381,6 +487,30 @@ export default function PlayerProfilePage() {
                             </p>
                         </div>
                         <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
+                            <p className="text-sm text-stone-500">{text.firstName}</p>
+                            <p className="mt-2 text-lg font-semibold text-stone-100">
+                                {profile.first_name || text.notAvailable}
+                            </p>
+                        </div>
+                        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
+                            <p className="text-sm text-stone-500">{text.lastName}</p>
+                            <p className="mt-2 text-lg font-semibold text-stone-100">
+                                {profile.last_name || text.notAvailable}
+                            </p>
+                        </div>
+                        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
+                            <p className="text-sm text-stone-500">{text.email}</p>
+                            <p className="mt-2 text-lg font-semibold text-stone-100">
+                                {profile.email || text.notAvailable}
+                            </p>
+                        </div>
+                        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
+                            <p className="text-sm text-stone-500">{text.phoneNumber}</p>
+                            <p className="mt-2 text-lg font-semibold text-stone-100">
+                                {profile.phone_number || text.notAvailable}
+                            </p>
+                        </div>
+                        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
                             <p className="text-sm text-stone-500">{text.dateOfBirth}</p>
                             <p className="mt-2 text-lg font-semibold text-stone-100">
                                 <LocalizedDateText value={profile.date_of_birth} fallback={text.notAvailable} />
@@ -389,6 +519,30 @@ export default function PlayerProfilePage() {
                     </div>
                 )}
             </section>
+
+            <section className="rounded-3xl border border-red-500/30 bg-red-500/5 p-8">
+                <h2 className="text-2xl font-semibold text-stone-100">{text.dangerZone}</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-400">{text.deleteAccountHint}</p>
+                <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    disabled={deletingAccount}
+                    className="mt-5 rounded-xl border border-red-400/50 bg-red-500 px-5 py-3 font-semibold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {deletingAccount ? text.deletingAccount : text.deleteAccount}
+                </button>
+            </section>
+
+            {showDeleteModal ? (
+                <ConfirmModal
+                    title={text.deleteAccount}
+                    message={text.deleteAccountConfirm}
+                    confirmText={text.deleteAccount}
+                    onCancel={() => setShowDeleteModal(false)}
+                    onConfirm={handleDeleteAccount}
+                    loading={deletingAccount}
+                />
+            ) : null}
         </div>
     );
 }
