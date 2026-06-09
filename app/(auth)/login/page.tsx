@@ -7,6 +7,7 @@ import { useAuth } from "../../Context/AuthContext";
 import { useLanguage } from "@/app/Context/LanguageContext";
 import api from "@/app/lib/axios";
 import GoogleAuthButton from "@/app/Components/GoogleAuthButton";
+import InlineAlert from "@/app/Components/InlineAlert";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -114,106 +115,110 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative overflow-hidden px-4 py-10">
+    <div className="relative overflow-hidden px-4 py-10 md:px-6 md:py-14">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-0 top-10 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-zinc-700/20 blur-3xl" />
+        <div className="absolute left-0 top-10 h-72 w-72 rounded-full bg-amber-500/14 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-zinc-700/20 blur-3xl" />
+        <div className="absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-stone-200/5 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
-        <section className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-8 shadow-[0_24px_80px_rgba(0,0,0,0.32)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-amber-300/80">
+      <div className="relative mx-auto max-w-5xl">
+        <div className="text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-amber-300/80">
             {text.eyebrow}
           </p>
-          <h1 className="mt-4 text-4xl font-black leading-tight text-stone-100 md:text-5xl">
+          <h1 className="mt-5 text-4xl font-black leading-tight text-stone-100 md:text-6xl">
             {text.title}
           </h1>
-          <p className="mt-5 max-w-xl text-lg leading-8 text-stone-400">
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-stone-400">
             {text.subtitle}
           </p>
+        </div>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5">
-              <p className="text-sm text-stone-500">{text.statOneLabel}</p>
-              <p className="mt-2 text-3xl font-black text-amber-300">{text.statOneValue}</p>
-            </div>
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5">
-              <p className="text-sm text-stone-500">{text.statTwoLabel}</p>
-              <p className="mt-2 text-3xl font-black text-stone-100">{text.statTwoValue}</p>
-            </div>
+        <div className="mx-auto mt-8 grid max-w-3xl gap-4 sm:grid-cols-2">
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5 text-center shadow-[0_18px_50px_rgba(0,0,0,0.22)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">{text.statOneLabel}</p>
+            <p className="mt-3 text-3xl font-black text-amber-300">{text.statOneValue}</p>
+          </div>
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5 text-center shadow-[0_18px_50px_rgba(0,0,0,0.22)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">{text.statTwoLabel}</p>
+            <p className="mt-3 text-3xl font-black text-stone-100">{text.statTwoValue}</p>
+          </div>
+        </div>
+
+        <section className="mx-auto mt-8 max-w-3xl overflow-hidden rounded-[2.2rem] border border-zinc-800 bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950 shadow-[0_30px_90px_rgba(0,0,0,0.34)]">
+          <div className="border-b border-zinc-800 px-6 py-6 md:px-8">
+            <h2 className="text-2xl font-semibold text-stone-100 md:text-3xl">{text.title}</h2>
+            <p className="mt-3 text-sm leading-7 text-stone-400">{text.divider}</p>
           </div>
 
-          <div className="mt-8 rounded-3xl border border-amber-500/20 bg-amber-500/8 p-6">
-            <h2 className="text-lg font-semibold text-stone-100">{text.highlightsTitle}</h2>
-            <div className="mt-4 space-y-3">
-              {text.highlights.map((highlight) => (
-                <div
-                  key={highlight}
-                  className="flex items-start gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3"
-                >
-                  <span className="mt-1 text-amber-300">●</span>
-                  <p className="text-sm leading-6 text-stone-300">{highlight}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-[2rem] border border-zinc-800 bg-zinc-900 p-8 shadow-lg shadow-black/30">
-          <h2 className="text-2xl font-semibold text-stone-100">{text.title}</h2>
-          <div className="mt-6">
+          <div className="space-y-6 px-6 py-6 md:px-8 md:py-8">
             <GoogleAuthButton
               label={text.googleLogin}
               hint={text.googleHint}
               onCodeReceived={handleGoogleLogin}
             />
+
+            <div className="flex items-center gap-4">
+              <div className="h-px flex-1 bg-zinc-800" />
+              <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">{text.divider}</p>
+              <div className="h-px flex-1 bg-zinc-800" />
+            </div>
+
+            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+              <input
+                type="text"
+                placeholder={text.username}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="rounded-2xl border border-zinc-700 bg-zinc-950/85 p-4 text-stone-100 outline-none transition focus:border-amber-400"
+                required
+              />
+              <input
+                type="password"
+                placeholder={text.password}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="rounded-2xl border border-zinc-700 bg-zinc-950/85 p-4 text-stone-100 outline-none transition focus:border-amber-400"
+                required
+              />
+              <button
+                type="submit"
+                className="mt-2 rounded-2xl bg-amber-500 p-4 font-semibold text-zinc-950 transition hover:bg-amber-400"
+              >
+                {text.submit}
+              </button>
+            </form>
+
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <Link href="/forgot-password" className="font-medium text-amber-300 transition hover:text-amber-200">
+                {text.forgotPassword}
+              </Link>
+              <p className="text-stone-400">
+                {text.createAccount}{" "}
+                <Link href="/register" className="font-semibold text-amber-300 hover:text-amber-200">
+                  {text.createAccountLink}
+                </Link>
+              </p>
+            </div>
+
+            {error ? <InlineAlert message={error} /> : null}
           </div>
+        </section>
 
-          <div className="my-6 flex items-center gap-4">
-            <div className="h-px flex-1 bg-zinc-800" />
-            <p className="text-xs uppercase tracking-[0.22em] text-stone-500">{text.divider}</p>
-            <div className="h-px flex-1 bg-zinc-800" />
+        <section className="mx-auto mt-8 max-w-4xl rounded-[1.8rem] border border-amber-500/18 bg-amber-500/8 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.2)]">
+          <h2 className="text-lg font-semibold text-stone-100">{text.highlightsTitle}</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {text.highlights.map((highlight) => (
+              <div
+                key={highlight}
+                className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-4 text-sm leading-7 text-stone-300"
+              >
+                <span className="mb-3 block text-xs font-semibold uppercase tracking-[0.24em] text-amber-300/80">HoopProgress</span>
+                {highlight}
+              </div>
+            ))}
           </div>
-
-          <form onSubmit={handleLogin} className="mt-6 flex flex-col gap-3">
-            <input
-              type="text"
-              placeholder={text.username}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-stone-100"
-              required
-            />
-            <input
-              type="password"
-              placeholder={text.password}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-stone-100"
-              required
-            />
-            <button
-              type="submit"
-              className="mt-2 rounded-xl bg-amber-500 p-3 font-semibold text-zinc-950 transition hover:bg-amber-400"
-            >
-              {text.submit}
-            </button>
-          </form>
-
-          <div className="mt-4">
-            <Link href="/forgot-password" className="text-sm font-medium text-amber-300 hover:text-amber-200">
-              {text.forgotPassword}
-            </Link>
-          </div>
-
-          {error && <p className="mt-3 text-red-400">{error}</p>}
-
-          <p className="mt-6 text-sm text-stone-400">
-            {text.createAccount}{" "}
-            <Link href="/register" className="font-semibold text-amber-300 hover:text-amber-200">
-              {text.createAccountLink}
-            </Link>
-          </p>
         </section>
       </div>
     </div>

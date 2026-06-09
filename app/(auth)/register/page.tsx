@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../Context/AuthContext";
@@ -8,6 +8,7 @@ import { useLanguage } from "@/app/Context/LanguageContext";
 import api from "@/app/lib/axios";
 import { uploadProfileImageToCloudinary, validateProfileImageFile } from "@/app/lib/cloudinary";
 import GoogleAuthButton from "@/app/Components/GoogleAuthButton";
+import InlineAlert from "@/app/Components/InlineAlert";
 
 type Role = "PLAYER" | "COACH";
 type WizardStepKey =
@@ -224,7 +225,7 @@ export default function RegisterPage() {
 
   const isGoogleFlow = Boolean(googleSignupToken);
 
-  const wizardSteps = useMemo<WizardStep[]>(() => {
+  const wizardSteps: WizardStep[] = (() => {
     const baseSteps: WizardStep[] = [
       { key: "username", title: text.usernameStepTitle, hint: text.usernameStepHint, required: true },
       { key: "email", title: text.emailStepTitle, hint: text.emailStepHint, required: true },
@@ -255,7 +256,7 @@ export default function RegisterPage() {
     }
 
     return baseSteps;
-  }, [isGoogleFlow, role, text]);
+  })();
 
   const activeStep = wizardSteps[Math.min(wizardStepIndex, wizardSteps.length - 1)];
   const isLastStep = wizardStepIndex === wizardSteps.length - 1;
@@ -586,47 +587,42 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative overflow-hidden px-4 py-8 md:px-6 md:py-10">
+    <div className="relative overflow-hidden px-4 py-8 md:px-6 md:py-12">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-zinc-700/20 blur-3xl" />
         <div className="absolute left-1/3 top-1/3 h-64 w-64 rounded-full bg-stone-200/5 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto flex max-w-7xl flex-col gap-8">
-        <section className="overflow-hidden rounded-[2.4rem] border border-zinc-800 bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-8 shadow-[0_24px_80px_rgba(0,0,0,0.32)] md:p-10 xl:p-12">
-          <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr] xl:items-end">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-amber-300/80">
-                {text.eyebrow}
-              </p>
-              <h1 className="mt-4 max-w-3xl text-4xl font-black leading-tight text-stone-100 md:text-5xl xl:text-6xl">
-                {text.title}
-              </h1>
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-stone-400 md:text-xl">
-                {text.subtitle}
-              </p>
-            </div>
+      <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-8">
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-3xl border border-amber-500/25 bg-amber-500/8 p-6">
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-300/80">
+        <section className="mx-auto w-full max-w-4xl rounded-[2.2rem] border border-zinc-800 bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-6 text-stone-100 shadow-[0_30px_90px_rgba(0,0,0,0.32)] md:p-8 xl:p-10">
+          <div className="text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.32em] text-amber-300/80">
+              {text.eyebrow}
+            </p>
+            <h1 className="mt-5 text-4xl font-black leading-tight text-stone-100 md:text-5xl">
+              {text.title}
+            </h1>
+            <p className="mx-auto mt-5 max-w-3xl text-lg leading-8 text-stone-400 md:text-xl">
+              {text.subtitle}
+            </p>
+            <div className="mx-auto mt-6 grid max-w-2xl gap-4 md:grid-cols-2">
+              <div className="rounded-3xl border border-amber-500/25 bg-amber-500/8 p-5 text-center shadow-[0_18px_60px_rgba(0,0,0,0.2)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-300/80">
                   {text.playerCardTitle}
                 </p>
                 <p className="mt-3 text-sm leading-7 text-stone-300">{text.playerCardText}</p>
               </div>
-              <div className="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-6">
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-200">
+              <div className="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5 text-center shadow-[0_18px_60px_rgba(0,0,0,0.2)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-200">
                   {text.coachCardTitle}
                 </p>
                 <p className="mt-3 text-sm leading-7 text-stone-400">{text.coachCardText}</p>
               </div>
             </div>
+            <h2 className="text-2xl font-semibold text-stone-100 md:text-3xl">{text.title}</h2>
           </div>
-        </section>
-
-        <section className="mx-auto w-full max-w-5xl rounded-[2.2rem] border border-zinc-800 bg-zinc-900/95 p-6 text-stone-100 shadow-[0_24px_80px_rgba(0,0,0,0.26)] md:p-8 xl:p-10">
-          <h2 className="text-2xl font-semibold text-stone-100">{text.title}</h2>
 
           {screen === "choose" && (
             <div className="mt-6 grid gap-4">
@@ -848,9 +844,9 @@ export default function RegisterPage() {
             </form>
           )}
 
-          {error && <p className="mt-3 text-red-400">{error}</p>}
+          {error ? <div className="mt-4"><InlineAlert message={error} /></div> : null}
 
-          <p className="mt-6 text-sm text-stone-400">
+          <p className="mt-6 text-center text-sm text-stone-400">
             {text.haveAccount}{" "}
             <Link href="/login" className="font-semibold text-amber-300 hover:text-amber-200">
               {text.haveAccountLink}
