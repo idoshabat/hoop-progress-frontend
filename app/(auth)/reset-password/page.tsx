@@ -20,6 +20,7 @@ function ResetPasswordContent() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [errorDetails, setErrorDetails] = useState<string[]>([]);
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -40,6 +41,7 @@ function ResetPasswordContent() {
         mismatch: "הסיסמאות לא תואמות.",
         success: "הסיסמה עודכנה בהצלחה. אפשר להתחבר עם הסיסמה החדשה.",
         failed: "איפוס הסיסמה נכשל.",
+        passwordIssuesTitle: "הסיסמה החדשה צריכה עוד שיפור",
         backToLogin: "חזרה להתחברות",
       }
     : {
@@ -55,12 +57,14 @@ function ResetPasswordContent() {
         mismatch: "Passwords do not match.",
         success: "Password updated successfully. You can now log in with your new password.",
         failed: "Password reset failed.",
+        passwordIssuesTitle: "Your new password needs a few adjustments",
         backToLogin: "Back to login",
       };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setErrorDetails([]);
     setSuccess("");
 
     if (!uid || !token) {
@@ -85,7 +89,10 @@ function ResetPasswordContent() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: unknown) {
-      const message =
+      let message = text.failed;
+      let details: string[] = [];
+
+      if (
         typeof err === "object" &&
         err !== null &&
         "response" in err &&
@@ -93,12 +100,24 @@ function ResetPasswordContent() {
         err.response !== null &&
         "data" in err.response &&
         typeof err.response.data === "object" &&
-        err.response.data !== null &&
-        "detail" in err.response.data &&
-        typeof err.response.data.detail === "string"
-          ? err.response.data.detail
-          : text.failed;
+        err.response.data !== null
+      ) {
+        const data = err.response.data as Record<string, unknown>;
+
+        if ("detail" in data && typeof data.detail === "string") {
+          message = data.detail;
+        }
+
+        if ("new_password" in data && Array.isArray(data.new_password)) {
+          details = data.new_password.filter((item): item is string => typeof item === "string");
+          if (details.length > 0) {
+            message = text.passwordIssuesTitle;
+          }
+        }
+      }
+
       setError(message);
+      setErrorDetails(details);
     } finally {
       setSubmitting(false);
     }
@@ -140,8 +159,29 @@ function ResetPasswordContent() {
           </button>
         </form>
 
-        {success ? <p className="mt-4 text-emerald-400">{success}</p> : null}
-        {error ? <p className="mt-4 text-red-400">{error}</p> : null}
+        {success ? (
+          <div className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-3">
+            <p className="text-sm leading-6 text-emerald-300">{success}</p>
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/8 px-4 py-4">
+            <p className="text-sm font-semibold text-red-300">{error}</p>
+            {errorDetails.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {errorDetails.map((detail) => (
+                  <div
+                    key={detail}
+                    className="rounded-xl border border-red-500/12 bg-zinc-950/60 px-3 py-2 text-sm leading-6 text-red-100/90"
+                  >
+                    {detail}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="mt-6">
           <Link href="/login" className="text-sm font-medium text-amber-300 hover:text-amber-200">
