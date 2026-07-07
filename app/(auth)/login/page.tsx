@@ -33,16 +33,7 @@ export default function LoginPage() {
         forgotPassword: "שכחת סיסמה?",
         createAccount: "אין לך חשבון עדיין?",
         createAccountLink: "ליצירת חשבון",
-        highlightsTitle: "מה מחכה לך בפנים",
-        highlights: [
-          "מעקב פשוט אחרי סשנים, אחוזים ומגמות לאורך זמן",
-          "אימונים שמגיעים מהמאמן שלך ונשמרים במקום אחד",
-          "תצוגה ברורה של התקדמות, תבניות ויעדים לכל שחקן",
-        ],
-        statOneLabel: "אימונים",
-        statOneValue: "חכמים",
-        statTwoLabel: "מעקב",
-        statTwoValue: "יומי",
+        helper: "התחבר כדי להמשיך ישירות לאזור האימונים וההתקדמות שלך.",
       }
     : {
         eyebrow: "Welcome Back",
@@ -59,16 +50,7 @@ export default function LoginPage() {
         forgotPassword: "Forgot password?",
         createAccount: "Don&apos;t have an account yet?",
         createAccountLink: "Create one",
-        highlightsTitle: "What you get inside",
-        highlights: [
-          "Simple tracking for sessions, percentages, and long-term trends",
-          "Coach-assigned workouts organized in one focused workspace",
-          "A clearer view of progress, templates, and training goals",
-        ],
-        statOneLabel: "Workouts",
-        statOneValue: "Focused",
-        statTwoLabel: "Tracking",
-        statTwoValue: "Daily",
+        helper: "Sign in to continue straight into your workouts and progress hub.",
       };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -122,34 +104,18 @@ export default function LoginPage() {
         <div className="absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-stone-200/5 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-5xl">
-        <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-amber-300/80">
-            {text.eyebrow}
-          </p>
-          <h1 className="mt-5 text-4xl font-black leading-tight text-stone-100 md:text-6xl">
-            {text.title}
-          </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-stone-400">
-            {text.subtitle}
-          </p>
-        </div>
-
-        <div className="mx-auto mt-8 grid max-w-3xl gap-4 sm:grid-cols-2">
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5 text-center shadow-[0_18px_50px_rgba(0,0,0,0.22)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">{text.statOneLabel}</p>
-            <p className="mt-3 text-3xl font-black text-amber-300">{text.statOneValue}</p>
-          </div>
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5 text-center shadow-[0_18px_50px_rgba(0,0,0,0.22)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">{text.statTwoLabel}</p>
-            <p className="mt-3 text-3xl font-black text-stone-100">{text.statTwoValue}</p>
-          </div>
-        </div>
-
-        <section className="mx-auto mt-8 max-w-3xl overflow-hidden rounded-[2.2rem] border border-zinc-800 bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950 shadow-[0_30px_90px_rgba(0,0,0,0.34)]">
-          <div className="border-b border-zinc-800 px-6 py-6 md:px-8">
-            <h2 className="text-2xl font-semibold text-stone-100 md:text-3xl">{text.title}</h2>
-            <p className="mt-3 text-sm leading-7 text-stone-400">{text.divider}</p>
+      <div className="relative mx-auto max-w-3xl">
+        <section className="overflow-hidden rounded-[2.2rem] border border-zinc-800 bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950 shadow-[0_30px_90px_rgba(0,0,0,0.34)]">
+          <div className="border-b border-zinc-800 px-6 py-6 text-center md:px-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.32em] text-amber-300/80">
+              {text.eyebrow}
+            </p>
+            <h1 className="mt-4 text-4xl font-black leading-tight text-stone-100 md:text-5xl">
+              {text.title}
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-stone-400">
+              {text.helper}
+            </p>
           </div>
 
           <div className="space-y-6 px-6 py-6 md:px-8 md:py-8">
@@ -206,20 +172,6 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="mx-auto mt-8 max-w-4xl rounded-[1.8rem] border border-amber-500/18 bg-amber-500/8 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.2)]">
-          <h2 className="text-lg font-semibold text-stone-100">{text.highlightsTitle}</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {text.highlights.map((highlight) => (
-              <div
-                key={highlight}
-                className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-4 text-sm leading-7 text-stone-300"
-              >
-                <span className="mb-3 block text-xs font-semibold uppercase tracking-[0.24em] text-amber-300/80">HoopProgress</span>
-                {highlight}
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
     </div>
   );

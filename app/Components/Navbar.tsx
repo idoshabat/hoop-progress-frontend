@@ -114,12 +114,12 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/90 text-stone-100 shadow-md backdrop-blur-md">
-      <div className="mx-auto grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-6 py-4">
+      <div className="mx-auto grid w-full grid-cols-[1fr_auto] items-center gap-4 px-6 py-4 md:grid-cols-[auto_1fr_auto]">
 
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-3 text-xl font-bold tracking-wide text-amber-400 transition hover:text-amber-300"
+          className="flex min-w-0 items-center gap-3 text-xl font-bold tracking-wide text-amber-400 transition hover:text-amber-300"
         >
           <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-amber-500/20 bg-transparent shadow-[0_8px_20px_rgba(0,0,0,0.2)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -175,7 +175,7 @@ export default function Navbar() {
         {/* Burger Button */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="md:hidden flex flex-col justify-center items-center w-8 h-8 relative"
+          className="relative flex h-8 w-8 items-center justify-center justify-self-end md:hidden"
         >
           <span
             className={`absolute h-0.5 w-6 bg-stone-100 transition-all duration-300 ${menuOpen ? "rotate-45" : "-translate-y-2"

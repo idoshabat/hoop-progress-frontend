@@ -26,6 +26,7 @@ type GoogleAuthButtonProps = {
   hint: string;
   onCodeReceived: (code: string) => Promise<void>;
   disabled?: boolean;
+  className?: string;
 };
 
 export default function GoogleAuthButton({
@@ -33,6 +34,7 @@ export default function GoogleAuthButton({
   hint,
   onCodeReceived,
   disabled = false,
+  className = "",
 }: GoogleAuthButtonProps) {
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
@@ -111,7 +113,7 @@ export default function GoogleAuthButton({
       type="button"
       onClick={handleClick}
       disabled={isDisabled}
-      className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-zinc-700 bg-zinc-950 px-5 py-4 text-left shadow-[0_12px_30px_rgba(0,0,0,0.2)] transition hover:border-zinc-500 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
+      className={`group flex w-full items-center justify-between gap-4 rounded-2xl border border-zinc-700 bg-zinc-950 px-5 py-4 text-left shadow-[0_12px_30px_rgba(0,0,0,0.2)] transition hover:border-zinc-500 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       <div className="flex items-center gap-4">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-200 bg-white">

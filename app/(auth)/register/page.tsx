@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../Context/AuthContext";
@@ -11,6 +11,7 @@ import GoogleAuthButton from "@/app/Components/GoogleAuthButton";
 import InlineAlert from "@/app/Components/InlineAlert";
 
 type Role = "PLAYER" | "COACH";
+type SignupMethod = "manual" | "google";
 type WizardStepKey =
   | "username"
   | "email"
@@ -35,8 +36,9 @@ export default function RegisterPage() {
   const { login, completeLogin } = useAuth();
   const { isHebrew } = useLanguage();
 
-  const [screen, setScreen] = useState<"choose" | "form">("choose");
+  const [screen, setScreen] = useState<"role" | "method" | "wizard">("role");
   const [role, setRole] = useState<Role | null>(null);
+  const [signupMethod, setSignupMethod] = useState<SignupMethod | null>(null);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -45,7 +47,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [googleSignupToken, setGoogleSignupToken] = useState<string | null>(null);
   const [googleEmail, setGoogleEmail] = useState("");
-  const [authMethod, setAuthMethod] = useState<"choose" | "manual" | "google">("choose");
   const [wizardStepIndex, setWizardStepIndex] = useState(0);
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [position, setPosition] = useState("PG");
@@ -55,77 +56,75 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const text = isHebrew
-    ? {
+  const text = useMemo(
+    () =>
+      isHebrew
+        ? {
         eyebrow: "הצטרפות למערכת",
         title: "יצירת חשבון",
-        choose: "בחר איך תרצה להירשם",
-        subtitle: "פתח חשבון חדש וקבל סביבת אימון מסודרת לשחקנים ולמאמנים.",
+        subtitle: "בחר סוג חשבון, אחר כך בחר איך להירשם, ואז השלם את הפרטים צעד אחר צעד.",
+        chooseRole: "בחר סוג חשבון",
+        chooseMethod: "בחר איך להירשם",
         player: "הירשם כשחקן",
         coach: "הירשם כמאמן",
+        playerCardText: "מעקב אישי אחרי אימונים, סשנים, אחוזים והתקדמות.",
+        coachCardText: "ניהול שחקנים, תבניות ואימונים במקום אחד.",
+        signup: "הרשמה רגילה",
+        signupText: "הרשמה עם אימייל, שם משתמש וסיסמה, ואז השלמת פרופיל בשלבים פשוטים.",
+        signupWithGoogle: "הרשמה עם Google",
+        signupWithGoogleText: "Google יאמת את הזהות שלך קודם, ואז תשלים את שאר הפרטים בתהליך קצר.",
         back: "חזרה",
         registeringAs: "נרשם בתור",
-        manualTrack: "הרשמה רגילה",
-        googleTrack: "הרשמה עם Google",
-        chooseMethodTitle: "בחר מסלול הרשמה",
-        chooseMethodHint: "שני המסלולים מובילים לאותו חשבון, אבל הדרך שונה לגמרי.",
-        manualMethodTitle: "הרשמה רגילה עם סיסמה",
-        manualMethodText: "תיצור חשבון עם שם משתמש וסיסמה, ואז תתקדם באונבורדינג המודרך.",
-        googleMethodTitle: "הרשמה עם Google",
-        googleMethodText: "Google תאמת את הזהות שלך קודם, ואז תשלים רק את הפרטים שחסרים בתוך HoopProgress.",
-        chooseThisPath: "בחר במסלול הזה",
-        wizardReady: "תהליך הרשמה קצר, מדויק ומקצועי. כל פעם מתמקדים רק בפרט אחד.",
-        googleReady: "Google כבר אישרה את הזהות שלך. עכשיו נשלים את הפרופיל באותו קצב נקי ומסודר.",
+        wizardReady: "תהליך הרשמה פשוט וברור. בכל שלב מתקדמים רק עם פרט אחד.",
+        googleReady: "Google כבר חיבר את החשבון. עכשיו משלימים את שאר הפרטים באותו תהליך ברור.",
+        googleConnectedTitle: "Google חיבר את החשבון שלך",
+        googleConnectedText: "עכשיו נשאר רק להשלים את שאר הפרטים ולסיים את ההרשמה.",
+        connectedEmail: "אימייל מחובר",
+        progress: "התקדמות",
+        step: "שלב",
+        next: "הבא",
+        previous: "הקודם",
+        skip: "דלג לעכשיו",
         username: "שם משתמש",
         email: "אימייל",
         firstName: "שם פרטי",
         lastName: "שם משפחה",
         phoneNumber: "מספר טלפון",
         password: "סיסמה",
-        continueWithGoogle: "המשך עם Google",
-        googleHint: "התחל עם Google, ואז המשך לאותו מסלול הרשמה מודרך ומדויק.",
-        finishGoogleSignup: "השלם הרשמה עם Google",
-        finishManualSignup: "צור חשבון",
-        googleConnectedTitle: "Google חיבר את החשבון שלך",
-        googleConnectedText: "עכשיו נשאר רק להשלים את הפרטים שהופכים את החשבון שלך לשלך.",
-        googleProgress: "השלמת הרשמה",
-        googleStep: "שלב",
-        next: "הבא",
-        previous: "הקודם",
-        skip: "דלג לעכשיו",
-        usernameStepTitle: "בחר שם משתמש מקצועי",
-        usernameStepHint: "זה השם שהשחקנים והמאמנים יראו בתוך HoopProgress.",
-        usernameStepRequired: "צריך לבחור שם משתמש כדי להמשיך.",
-        emailStepTitle: "מה האימייל שלך?",
-        emailStepHint: "האימייל ישמש אותך לשחזור סיסמה ולהתראות חשובות בעתיד.",
-        emailStepRequired: "צריך להזין אימייל כדי להמשיך.",
-        firstNameStepTitle: "איך נרצה לקרוא לך?",
-        firstNameStepHint: "שם פרטי טוב גורם לפרופיל להרגיש אישי ומדויק יותר.",
-        lastNameStepTitle: "ועכשיו סוגרים את השם",
-        lastNameStepHint: "שם משפחה נותן לחשבון מראה רשמי ואמין יותר.",
-        phoneStepTitle: "מה מספר הטלפון שלך?",
-        phoneStepHint: "שדה אופציונלי, אבל נוח שיהיה חלק מהפרופיל ליצירת קשר מהירה.",
-        passwordStepTitle: "בחר סיסמה חזקה",
-        passwordStepHint: "רק עוד שכבת אבטחה אחת ואתה בפנים.",
-        passwordStepRequired: "צריך לבחור סיסמה כדי להמשיך.",
-        photoStepTitle: "הוסף תמונת פרופיל",
-        photoStepHint: "לא חובה, אבל זה נותן לחשבון מראה שלם ובטוח יותר.",
-        dobStepTitle: "מתי נולדת?",
-        dobStepHint: "אפשר להשאיר את זה כהשלמה רכה של הפרופיל.",
-        positionStepTitle: "מה העמדה שלך?",
-        positionStepHint: "זה עוזר לאימונים ולהקשרים סביבך להרגיש יותר מותאמים.",
-        heightStepTitle: "מה הגובה שלך?",
-        heightStepHint: "אפשר גם לדלג ולחזור לזה אחר כך.",
         dateOfBirth: "תאריך לידה",
         height: "גובה (ס\"מ)",
+        profilePhotoHint: "בחר תמונה עד 10MB",
+        profilePhotoRemove: "הסר תמונה",
+        finishManualSignup: "צור חשבון",
+        finishGoogleSignup: "השלם הרשמה עם Google",
+        creating: "יוצר חשבון...",
         failed: "ההרשמה נכשלה",
         googleFailed: "הרשמה עם Google נכשלה",
+        usernameStepTitle: "בחר שם משתמש",
+        usernameStepHint: "זה השם שיופיע באפליקציה.",
+        usernameStepRequired: "צריך לבחור שם משתמש כדי להמשיך.",
+        emailStepTitle: "מה האימייל שלך?",
+        emailStepHint: "האימייל ישמש להתחברות ולהודעות חשובות.",
+        emailStepRequired: "צריך להזין אימייל כדי להמשיך.",
+        firstNameStepTitle: "שם פרטי",
+        firstNameStepHint: "אפשר להשאיר ריק אם תרצה להשלים אחר כך.",
+        lastNameStepTitle: "שם משפחה",
+        lastNameStepHint: "גם זה שדה שאפשר להשלים בהמשך.",
+        phoneStepTitle: "מספר טלפון",
+        phoneStepHint: "אופציונלי, למקרה שתרצה לשתף בפרופיל.",
+        passwordStepTitle: "בחר סיסמה",
+        passwordStepHint: "רק עוד שלב אחד של אבטחה ואתה בפנים.",
+        passwordStepRequired: "צריך לבחור סיסמה כדי להמשיך.",
+        photoStepTitle: "תמונת פרופיל",
+        photoStepHint: "לא חובה, אבל נותן לפרופיל מראה שלם יותר.",
+        dobStepTitle: "מתי נולדת?",
+        dobStepHint: "אפשר גם להשאיר להמשך.",
+        positionStepTitle: "מה העמדה שלך?",
+        positionStepHint: "עוזר להתאים את חוויית האימון.",
+        heightStepTitle: "מה הגובה שלך?",
+        heightStepHint: "גם זה שדה שאפשר להשלים אחר כך.",
         haveAccount: "כבר יש לך חשבון?",
         haveAccountLink: "להתחברות",
-        playerCardTitle: "לשחקנים",
-        playerCardText: "מעקב אחרי אימונים, סשנים, אחוזים ותהליך התקדמות ברור לאורך זמן.",
-        coachCardTitle: "למאמנים",
-        coachCardText: "ניהול שחקנים, תבניות ואימונים מותאמים מתוך סביבת עבודה אחת.",
         positions: {
           PG: "רכז",
           SG: "קלע",
@@ -133,82 +132,73 @@ export default function RegisterPage() {
           PF: "פאוור פורוורד",
           C: "סנטר",
         },
-        profilePhoto: "תמונת פרופיל",
-        profilePhotoHint: "בחר תמונה עד 10MB",
-        profilePhotoRemove: "הסר תמונה",
-        creating: "יוצר חשבון...",
-        connectedEmail: "אימייל מחובר",
       }
-    : {
+        : {
         eyebrow: "Join The Platform",
         title: "Create Account",
-        choose: "Choose how you want to register",
-        subtitle: "Open a new account and step into a cleaner training experience for players and coaches.",
+        subtitle: "Choose your account type, then choose how to sign up, and finish the details step by step.",
+        chooseRole: "Choose account type",
+        chooseMethod: "Choose how to sign up",
         player: "Sign up as Player",
         coach: "Sign up as Coach",
+        playerCardText: "Track workouts, sessions, percentages, and progress clearly.",
+        coachCardText: "Manage players, templates, and assigned workouts in one place.",
+        signup: "Sign up",
+        signupText: "Create an account with email, username, and password, then complete your profile step by step.",
+        signupWithGoogle: "Sign up with Google",
+        signupWithGoogleText: "Google verifies your identity first, then you finish the rest in a short guided flow.",
         back: "Back",
         registeringAs: "Registering as",
-        manualTrack: "Classic Signup",
-        googleTrack: "Google Signup",
-        chooseMethodTitle: "Choose your signup path",
-        chooseMethodHint: "Both paths lead to the same account, but the experience is intentionally different.",
-        manualMethodTitle: "Classic signup with password",
-        manualMethodText: "Create an account with a username and password, then move through the guided onboarding.",
-        googleMethodTitle: "Sign up with Google",
-        googleMethodText: "Google verifies your identity first, then you only complete the missing HoopProgress details.",
-        chooseThisPath: "Choose this path",
-        wizardReady: "A tighter, more focused signup flow. One detail at a time, with less noise.",
-        googleReady: "Google already handled identity. Now we finish the rest with the same clean guided flow.",
+        wizardReady: "A simple and clear signup flow. One detail at a time.",
+        googleReady: "Google already connected your account. Now finish the rest in the same clear flow.",
+        googleConnectedTitle: "Google connected your account",
+        googleConnectedText: "Now just complete the remaining details and finish signing up.",
+        connectedEmail: "Connected email",
+        progress: "Progress",
+        step: "Step",
+        next: "Next",
+        previous: "Previous",
+        skip: "Skip for now",
         username: "Username",
         email: "Email",
         firstName: "First Name",
         lastName: "Last Name",
         phoneNumber: "Phone Number",
         password: "Password",
-        continueWithGoogle: "Continue with Google",
-        googleHint: "Start with Google, then continue through the same guided signup flow.",
-        finishGoogleSignup: "Finish Google Signup",
-        finishManualSignup: "Create Account",
-        googleConnectedTitle: "Google already verified you",
-        googleConnectedText: "Now we only need the details that make this HoopProgress account truly yours.",
-        googleProgress: "Signup Progress",
-        googleStep: "Step",
-        next: "Next",
-        previous: "Previous",
-        skip: "Skip for now",
-        usernameStepTitle: "Choose a strong username",
-        usernameStepHint: "This is the name coaches and players will see inside HoopProgress.",
-        usernameStepRequired: "Choose a username to continue.",
-        emailStepTitle: "What is your email?",
-        emailStepHint: "Your email will be used for password recovery and important account messages.",
-        emailStepRequired: "Enter an email to continue.",
-        firstNameStepTitle: "What should we call you?",
-        firstNameStepHint: "A clear first name makes the account feel warmer and more personal.",
-        lastNameStepTitle: "Now finish the name",
-        lastNameStepHint: "A last name gives the profile a more polished and recognizable feel.",
-        phoneStepTitle: "What is your phone number?",
-        phoneStepHint: "Optional, but useful to keep on the profile for quick contact when needed.",
-        passwordStepTitle: "Create a strong password",
-        passwordStepHint: "One more layer of security, then you are in.",
-        passwordStepRequired: "Choose a password to continue.",
-        photoStepTitle: "Add a profile photo",
-        photoStepHint: "Optional, but it makes the account feel much more complete and trustworthy.",
-        dobStepTitle: "When were you born?",
-        dobStepHint: "You can treat this as a softer profile-completion step.",
-        positionStepTitle: "What position do you play?",
-        positionStepHint: "This helps training context feel more tailored around you.",
-        heightStepTitle: "What is your height?",
-        heightStepHint: "You can skip this and come back to it later.",
         dateOfBirth: "Date of Birth",
         height: "Height (cm)",
+        profilePhotoHint: "Choose an image up to 10MB",
+        profilePhotoRemove: "Remove photo",
+        finishManualSignup: "Create Account",
+        finishGoogleSignup: "Finish Google Signup",
+        creating: "Creating account...",
         failed: "Registration failed",
         googleFailed: "Google signup failed",
+        usernameStepTitle: "Choose a username",
+        usernameStepHint: "This is the name shown inside the app.",
+        usernameStepRequired: "Choose a username to continue.",
+        emailStepTitle: "What is your email?",
+        emailStepHint: "Your email will be used for sign in and important account messages.",
+        emailStepRequired: "Enter an email to continue.",
+        firstNameStepTitle: "First name",
+        firstNameStepHint: "You can leave this for later if you want.",
+        lastNameStepTitle: "Last name",
+        lastNameStepHint: "This can also be completed later.",
+        phoneStepTitle: "Phone number",
+        phoneStepHint: "Optional, if you want it on the profile.",
+        passwordStepTitle: "Create a password",
+        passwordStepHint: "One more security step and you are in.",
+        passwordStepRequired: "Choose a password to continue.",
+        photoStepTitle: "Profile photo",
+        photoStepHint: "Optional, but it makes the profile feel more complete.",
+        dobStepTitle: "When were you born?",
+        dobStepHint: "You can also leave this for later.",
+        positionStepTitle: "What position do you play?",
+        positionStepHint: "Helps tailor the training experience.",
+        heightStepTitle: "What is your height?",
+        heightStepHint: "This can also be completed later.",
         haveAccount: "Already have an account?",
         haveAccountLink: "Log in",
-        playerCardTitle: "For Players",
-        playerCardText: "Track workouts, sessions, percentages, and progress with more clarity over time.",
-        coachCardTitle: "For Coaches",
-        coachCardText: "Manage players, templates, and workout assignments from one focused workspace.",
         positions: {
           PG: "Point Guard",
           SG: "Shooting Guard",
@@ -216,16 +206,13 @@ export default function RegisterPage() {
           PF: "Power Forward",
           C: "Center",
         },
-        profilePhoto: "Profile Photo",
-        profilePhotoHint: "Choose an image up to 10MB",
-        profilePhotoRemove: "Remove photo",
-        creating: "Creating account...",
-        connectedEmail: "Connected email",
-      };
+      },
+    [isHebrew]
+  );
 
-  const isGoogleFlow = Boolean(googleSignupToken);
+  const isGoogleFlow = signupMethod === "google";
 
-  const wizardSteps: WizardStep[] = (() => {
+  const wizardSteps = useMemo<WizardStep[]>(() => {
     const baseSteps: WizardStep[] = [
       { key: "username", title: text.usernameStepTitle, hint: text.usernameStepHint, required: true },
       { key: "email", title: text.emailStepTitle, hint: text.emailStepHint, required: true },
@@ -256,7 +243,7 @@ export default function RegisterPage() {
     }
 
     return baseSteps;
-  })();
+  }, [isGoogleFlow, role, text]);
 
   const activeStep = wizardSteps[Math.min(wizardStepIndex, wizardSteps.length - 1)];
   const isLastStep = wizardStepIndex === wizardSteps.length - 1;
@@ -268,9 +255,19 @@ export default function RegisterPage() {
   };
 
   const resetFormState = () => {
+    setUsername("");
+    setEmail("");
+    setFirstName("");
+    setLastName("");
+    setPhoneNumber("");
+    setPassword("");
+    setDateOfBirth("");
+    setPosition("PG");
+    setHeight("");
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview(null);
     setWizardStepIndex(0);
     setError("");
-    setAuthMethod("choose");
     resetGoogleFlow();
   };
 
@@ -290,6 +287,38 @@ export default function RegisterPage() {
       setProfilePhotoFile(null);
       setProfilePhotoPreview(null);
       setError(err instanceof Error ? err.message : text.failed);
+    }
+  };
+
+  const handleGoogleRegister = async (code: string) => {
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const res = await api.post("/register/google/context/", { code });
+      setGoogleSignupToken(res.data.signup_token);
+      setEmail((current) => current || res.data.email || "");
+      setGoogleEmail(res.data.email ?? "");
+      setFirstName((current) => current || res.data.first_name || "");
+      setLastName((current) => current || res.data.last_name || "");
+      setScreen("wizard");
+    } catch (err: unknown) {
+      const message =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof err.response === "object" &&
+        err.response !== null &&
+        "data" in err.response &&
+        typeof err.response.data === "object" &&
+        err.response.data !== null &&
+        "detail" in err.response.data &&
+        typeof err.response.data.detail === "string"
+          ? err.response.data.detail
+          : text.googleFailed;
+      setError(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -350,68 +379,6 @@ export default function RegisterPage() {
       router.push("/");
     } catch {
       setError(text.failed);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
-
-  const handleWizardKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-    if (e.key !== "Enter") {
-      return;
-    }
-
-    const target = e.target as HTMLElement | null;
-    const tagName = target?.tagName ?? "";
-    if (tagName === "BUTTON" || tagName === "TEXTAREA") {
-      return;
-    }
-
-    e.preventDefault();
-
-    if (submitting) {
-      return;
-    }
-
-    if (isLastStep) {
-      void finalizeRegistration();
-      return;
-    }
-
-    handleNextStep();
-  };
-
-  const handleGoogleRegister = async (code: string) => {
-    setSubmitting(true);
-    setError("");
-
-    try {
-      const res = await api.post("/register/google/context/", { code });
-      setGoogleSignupToken(res.data.signup_token);
-      setEmail((current) => current || res.data.email || "");
-      setGoogleEmail(res.data.email ?? "");
-      setFirstName((current) => current || res.data.first_name || "");
-      setLastName((current) => current || res.data.last_name || "");
-      setAuthMethod("google");
-      setWizardStepIndex(0);
-    } catch (err: unknown) {
-      const message =
-        typeof err === "object" &&
-        err !== null &&
-        "response" in err &&
-        typeof err.response === "object" &&
-        err.response !== null &&
-        "data" in err.response &&
-        typeof err.response.data === "object" &&
-        err.response.data !== null &&
-        "detail" in err.response.data &&
-        typeof err.response.data.detail === "string"
-          ? err.response.data.detail
-          : text.googleFailed;
-      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -594,8 +561,7 @@ export default function RegisterPage() {
         <div className="absolute left-1/3 top-1/3 h-64 w-64 rounded-full bg-stone-200/5 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-8">
-
+      <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-8">
         <section className="mx-auto w-full max-w-4xl rounded-[2.2rem] border border-zinc-800 bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-6 text-stone-100 shadow-[0_30px_90px_rgba(0,0,0,0.32)] md:p-8 xl:p-10">
           <div className="text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.32em] text-amber-300/80">
@@ -607,141 +573,124 @@ export default function RegisterPage() {
             <p className="mx-auto mt-5 max-w-3xl text-lg leading-8 text-stone-400 md:text-xl">
               {text.subtitle}
             </p>
-            <div className="mx-auto mt-6 grid max-w-2xl gap-4 md:grid-cols-2">
-              <div className="rounded-3xl border border-amber-500/25 bg-amber-500/8 p-5 text-center shadow-[0_18px_60px_rgba(0,0,0,0.2)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-300/80">
-                  {text.playerCardTitle}
-                </p>
-                <p className="mt-3 text-sm leading-7 text-stone-300">{text.playerCardText}</p>
-              </div>
-              <div className="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5 text-center shadow-[0_18px_60px_rgba(0,0,0,0.2)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-200">
-                  {text.coachCardTitle}
-                </p>
-                <p className="mt-3 text-sm leading-7 text-stone-400">{text.coachCardText}</p>
-              </div>
-            </div>
-            <h2 className="text-2xl font-semibold text-stone-100 md:text-3xl">{text.title}</h2>
           </div>
 
-          {screen === "choose" && (
+          {screen === "role" ? (
             <div className="mt-6 grid gap-4">
-              <p className="text-stone-400">{text.choose}</p>
-
+              <p className="text-center text-stone-400">{text.chooseRole}</p>
               <div className="grid gap-4 md:grid-cols-2">
                 <button
                   onClick={() => {
                     setRole("PLAYER");
-                    setScreen("form");
+                    setScreen("method");
                     resetFormState();
                   }}
                   className="rounded-[1.8rem] border border-amber-500/35 bg-linear-to-br from-amber-500 to-amber-400 p-6 text-left text-zinc-950 shadow-[0_20px_60px_rgba(245,158,11,0.18)] transition hover:-translate-y-0.5 hover:from-amber-400 hover:to-amber-300"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-800/70">
-                    {text.playerCardTitle}
-                  </p>
-                  <h3 className="mt-3 text-2xl font-bold">{text.player}</h3>
+                  <h3 className="text-2xl font-bold">{text.player}</h3>
                   <p className="mt-3 text-sm leading-7 text-zinc-900/80">{text.playerCardText}</p>
                 </button>
-
                 <button
                   onClick={() => {
                     setRole("COACH");
-                    setScreen("form");
+                    setScreen("method");
                     resetFormState();
                   }}
                   className="rounded-[1.8rem] border border-zinc-700 bg-linear-to-br from-zinc-900 to-zinc-800 p-6 text-left text-stone-100 transition hover:-translate-y-0.5 hover:border-amber-400/40 hover:from-zinc-800 hover:to-zinc-700"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
-                    {text.coachCardTitle}
-                  </p>
-                  <h3 className="mt-3 text-2xl font-bold">{text.coach}</h3>
+                  <h3 className="text-2xl font-bold">{text.coach}</h3>
                   <p className="mt-3 text-sm leading-7 text-stone-400">{text.coachCardText}</p>
                 </button>
               </div>
             </div>
-          )}
+          ) : null}
 
-          {screen === "form" && role && (
-            <form onSubmit={handleFormSubmit} onKeyDown={handleWizardKeyDown} className="mt-6 flex flex-col gap-4">
+          {screen === "method" && role ? (
+            <div className="mt-6 space-y-5">
               <button
                 type="button"
                 onClick={() => {
-                  setScreen("choose");
+                  setScreen("role");
+                  setRole(null);
                   resetFormState();
                 }}
-                className="mb-1 text-left text-sm text-stone-400 hover:text-amber-300"
+                className="text-left text-sm text-stone-400 hover:text-amber-300"
               >
                 {text.back}
               </button>
 
-              <p className="text-sm text-stone-400">
-                {text.registeringAs} <span className="font-semibold">{role === "PLAYER" ? text.player : text.coach}</span>
+              <p className="text-center text-sm text-stone-400">
+                {text.registeringAs}{" "}
+                <span className="font-semibold">{role === "PLAYER" ? text.player : text.coach}</span>
               </p>
 
-              {authMethod === "choose" ? (
-                <div className="grid gap-4">
-                  <div className="rounded-[1.8rem] border border-zinc-800 bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.24)]">
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300/80">
-                      {text.chooseMethodTitle}
-                    </p>
-                    <p className="mt-3 text-sm leading-7 text-stone-400">{text.chooseMethodHint}</p>
-                  </div>
+              <p className="text-center text-stone-400">{text.chooseMethod}</p>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-[1.7rem] border border-zinc-800 bg-zinc-950/80 p-5">
-                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
-                        {text.manualTrack}
-                      </p>
-                      <h3 className="mt-3 text-xl font-bold text-stone-100">{text.manualMethodTitle}</h3>
-                      <p className="mt-3 text-sm leading-7 text-stone-400">{text.manualMethodText}</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAuthMethod("manual");
-                          setWizardStepIndex(0);
-                          setError("");
-                        }}
-                        className="mt-5 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-semibold text-stone-100 transition hover:border-amber-400 hover:bg-zinc-800"
-                      >
-                        {text.chooseThisPath}
-                      </button>
-                    </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSignupMethod("manual");
+                    setScreen("wizard");
+                    setWizardStepIndex(0);
+                    setError("");
+                  }}
+                  className="rounded-[1.8rem] border border-zinc-700 bg-zinc-900/85 p-6 text-left transition hover:-translate-y-0.5 hover:border-amber-400/40 hover:bg-zinc-800"
+                >
+                  <h3 className="text-2xl font-bold text-stone-100">{text.signup}</h3>
+                  <p className="mt-3 text-sm leading-7 text-stone-400">{text.signupText}</p>
+                </button>
+                <GoogleAuthButton
+                  label={text.signupWithGoogle}
+                  hint=""
+                  onCodeReceived={async (code) => {
+                    setSignupMethod("google");
+                    await handleGoogleRegister(code);
+                  }}
+                  disabled={submitting}
+                  className="h-full min-h-[144px] rounded-[1.8rem] border-amber-500/30 bg-linear-to-br from-amber-500/10 via-zinc-950 to-zinc-900 px-6 py-6 hover:border-amber-400 hover:from-amber-500/15 hover:via-zinc-900 hover:to-zinc-800"
+                />
+              </div>
 
-                    <div className="rounded-[1.7rem] border border-amber-500/30 bg-amber-500/5 p-5">
-                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-300/80">
-                        {text.googleTrack}
-                      </p>
-                      <h3 className="mt-3 text-xl font-bold text-stone-100">{text.googleMethodTitle}</h3>
-                      <p className="mt-3 text-sm leading-7 text-stone-300">{text.googleMethodText}</p>
-                      <div className="mt-5">
-                        <GoogleAuthButton
-                          label={text.continueWithGoogle}
-                          hint={text.googleHint}
-                          onCodeReceived={handleGoogleRegister}
-                          disabled={submitting}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+              {error ? <InlineAlert message={error} /> : null}
+            </div>
+          ) : null}
 
-              {authMethod !== "choose" ? (
+          {screen === "wizard" && role && signupMethod ? (
+            <div className="mt-6 space-y-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setScreen("method");
+                  setSignupMethod(null);
+                  resetFormState();
+                }}
+                className="text-left text-sm text-stone-400 hover:text-amber-300"
+              >
+                {text.back}
+              </button>
+
+              <p className="text-center text-sm text-stone-400">
+                {text.registeringAs}{" "}
+                <span className="font-semibold">{role === "PLAYER" ? text.player : text.coach}</span>
+              </p>
+
               <div className="overflow-hidden rounded-[1.8rem] border border-zinc-800 bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950 shadow-[0_28px_80px_rgba(0,0,0,0.28)]">
                 <div className="border-b border-zinc-800 px-5 py-4">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300/80">
-                        {text.googleProgress}
+                        {text.progress}
                       </p>
                       <p className="mt-2 text-sm text-stone-400">
                         {isGoogleFlow ? text.googleReady : text.wizardReady}
                       </p>
                     </div>
-                    <div className="rounded-full border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs font-semibold text-stone-200">
-                      {isGoogleFlow ? text.googleTrack : text.manualTrack}
-                    </div>
+                    {isGoogleFlow ? (
+                      <div className="rounded-full border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs font-semibold text-stone-200">
+                        {text.signupWithGoogle}
+                      </div>
+                    ) : null}
                   </div>
 
                   {isGoogleFlow ? (
@@ -775,7 +724,7 @@ export default function RegisterPage() {
                       ))}
                     </div>
                     <p className="ml-4 text-xs text-stone-500">
-                      {text.googleStep} {wizardStepIndex + 1}/{wizardSteps.length}
+                      {text.step} {wizardStepIndex + 1}/{wizardSteps.length}
                     </p>
                   </div>
                 </div>
@@ -790,6 +739,8 @@ export default function RegisterPage() {
                   </div>
 
                   {renderWizardField()}
+
+                  {error ? <InlineAlert message={error} /> : null}
 
                   <div className="flex items-center justify-between gap-3 pt-2">
                     <button
@@ -840,11 +791,8 @@ export default function RegisterPage() {
                   </div>
                 </div>
               </div>
-              ) : null}
-            </form>
-          )}
-
-          {error ? <div className="mt-4"><InlineAlert message={error} /></div> : null}
+            </div>
+          ) : null}
 
           <p className="mt-6 text-center text-sm text-stone-400">
             {text.haveAccount}{" "}
