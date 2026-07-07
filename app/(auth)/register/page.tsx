@@ -54,7 +54,9 @@ export default function RegisterPage() {
   const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [validatingStep, setValidatingStep] = useState(false);
   const [error, setError] = useState("");
+  const [stepFeedback, setStepFeedback] = useState("");
 
   const text = useMemo(
     () =>
@@ -98,14 +100,22 @@ export default function RegisterPage() {
         finishManualSignup: "צור חשבון",
         finishGoogleSignup: "השלם הרשמה עם Google",
         creating: "יוצר חשבון...",
+        validating: "בודק...",
         failed: "ההרשמה נכשלה",
         googleFailed: "הרשמה עם Google נכשלה",
         usernameStepTitle: "בחר שם משתמש",
         usernameStepHint: "זה השם שיופיע באפליקציה.",
         usernameStepRequired: "צריך לבחור שם משתמש כדי להמשיך.",
+        usernameStepTooShort: "שם המשתמש צריך להכיל לפחות 3 תווים.",
+        usernameStepInvalid: "אפשר להשתמש רק באותיות, מספרים, נקודה, קו תחתון ומקף.",
+        usernameTaken: "שם המשתמש הזה כבר תפוס.",
+        usernameAvailable: "שם המשתמש הזה פנוי.",
         emailStepTitle: "מה האימייל שלך?",
         emailStepHint: "האימייל ישמש להתחברות ולהודעות חשובות.",
         emailStepRequired: "צריך להזין אימייל כדי להמשיך.",
+        emailStepInvalid: "צריך להזין כתובת אימייל תקינה.",
+        emailTaken: "כתובת האימייל הזו כבר קיימת במערכת.",
+        emailAvailable: "כתובת האימייל נראית תקינה ופנויה.",
         firstNameStepTitle: "שם פרטי",
         firstNameStepHint: "אפשר להשאיר ריק אם תרצה להשלים אחר כך.",
         lastNameStepTitle: "שם משפחה",
@@ -115,6 +125,7 @@ export default function RegisterPage() {
         passwordStepTitle: "בחר סיסמה",
         passwordStepHint: "רק עוד שלב אחד של אבטחה ואתה בפנים.",
         passwordStepRequired: "צריך לבחור סיסמה כדי להמשיך.",
+        passwordStepTooShort: "הסיסמה צריכה להכיל לפחות 8 תווים.",
         photoStepTitle: "תמונת פרופיל",
         photoStepHint: "לא חובה, אבל נותן לפרופיל מראה שלם יותר.",
         dobStepTitle: "מתי נולדת?",
@@ -172,14 +183,22 @@ export default function RegisterPage() {
         finishManualSignup: "Create Account",
         finishGoogleSignup: "Finish Google Signup",
         creating: "Creating account...",
+        validating: "Checking...",
         failed: "Registration failed",
         googleFailed: "Google signup failed",
         usernameStepTitle: "Choose a username",
         usernameStepHint: "This is the name shown inside the app.",
         usernameStepRequired: "Choose a username to continue.",
+        usernameStepTooShort: "Username must be at least 3 characters long.",
+        usernameStepInvalid: "Use only letters, numbers, dots, underscores, and hyphens.",
+        usernameTaken: "This username is already taken.",
+        usernameAvailable: "This username is available.",
         emailStepTitle: "What is your email?",
         emailStepHint: "Your email will be used for sign in and important account messages.",
         emailStepRequired: "Enter an email to continue.",
+        emailStepInvalid: "Enter a valid email address.",
+        emailTaken: "This email is already registered.",
+        emailAvailable: "This email looks valid and available.",
         firstNameStepTitle: "First name",
         firstNameStepHint: "You can leave this for later if you want.",
         lastNameStepTitle: "Last name",
@@ -189,6 +208,7 @@ export default function RegisterPage() {
         passwordStepTitle: "Create a password",
         passwordStepHint: "One more security step and you are in.",
         passwordStepRequired: "Choose a password to continue.",
+        passwordStepTooShort: "Password must be at least 8 characters long.",
         photoStepTitle: "Profile photo",
         photoStepHint: "Optional, but it makes the profile feel more complete.",
         dobStepTitle: "When were you born?",
@@ -268,7 +288,175 @@ export default function RegisterPage() {
     setProfilePhotoPreview(null);
     setWizardStepIndex(0);
     setError("");
+    setStepFeedback("");
     resetGoogleFlow();
+  };
+
+  const parseErrorMessage = (err: unknown, fallback: string) => {
+    if (typeof err === "object" && err !== null && "response" in err) {
+      const response = err.response;
+      if (typeof response === "object" && response !== null && "data" in response) {
+        const data = response.data;
+        if (typeof data === "string") {
+          return data;
+        }
+
+        if (typeof data === "object" && data !== null) {
+          if ("detail" in data && typeof data.detail === "string") {
+            return data.detail;
+          }
+
+          const firstEntry = Object.values(data).find((value) =>
+            typeof value === "string" || (Array.isArray(value) && typeof value[0] === "string")
+          );
+
+          if (typeof firstEntry === "string") {
+            return firstEntry;
+          }
+
+          if (Array.isArray(firstEntry) && typeof firstEntry[0] === "string") {
+            return firstEntry[0];
+          }
+        }
+      }
+    }
+
+    return fallback;
+  };
+
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  const isValidUsername = (value: string) => /^[A-Za-z0-9._-]+$/.test(value);
+
+  const checkAvailability = async (field: "username" | "email", value: string) => {
+    try {
+      const res = await api.get("/register/validate/", {
+        params: { [field]: value },
+      });
+
+      const data = res.data as Record<string, unknown>;
+      const isAvailable =
+        typeof data.available === "boolean"
+          ? data.available
+          : typeof data[`${field}_available`] === "boolean"
+            ? (data[`${field}_available`] as boolean)
+            : true;
+
+      return { supported: true, available: isAvailable };
+    } catch (err: unknown) {
+      const status =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof err.response === "object" &&
+        err.response !== null &&
+        "status" in err.response &&
+        typeof err.response.status === "number"
+          ? err.response.status
+          : null;
+
+      if (status === 400 || status === 409) {
+        return { supported: true, available: false };
+      }
+
+      if (status === 404 || status === 405 || status === 501) {
+        return { supported: false, available: true };
+      }
+
+      throw err;
+    }
+  };
+
+  const validateCurrentStep = async () => {
+    if (activeStep.key === "username") {
+      const trimmedUsername = username.trim();
+
+      if (!trimmedUsername) {
+        setError(text.usernameStepRequired);
+        return false;
+      }
+
+      if (trimmedUsername.length < 3) {
+        setError(text.usernameStepTooShort);
+        return false;
+      }
+
+      if (!isValidUsername(trimmedUsername)) {
+        setError(text.usernameStepInvalid);
+        return false;
+      }
+
+      setValidatingStep(true);
+
+      try {
+        const result = await checkAvailability("username", trimmedUsername);
+
+        if (!result.available) {
+          setError(text.usernameTaken);
+          return false;
+        }
+
+        setUsername(trimmedUsername);
+        setError("");
+        setStepFeedback(result.supported ? text.usernameAvailable : "");
+        return true;
+      } catch (err) {
+        setError(parseErrorMessage(err, text.failed));
+        return false;
+      } finally {
+        setValidatingStep(false);
+      }
+    }
+
+    if (activeStep.key === "email") {
+      const trimmedEmail = email.trim();
+
+      if (!trimmedEmail) {
+        setError(text.emailStepRequired);
+        return false;
+      }
+
+      if (!isValidEmail(trimmedEmail)) {
+        setError(text.emailStepInvalid);
+        return false;
+      }
+
+      setValidatingStep(true);
+
+      try {
+        const result = await checkAvailability("email", trimmedEmail);
+
+        if (!result.available) {
+          setError(text.emailTaken);
+          return false;
+        }
+
+        setEmail(trimmedEmail);
+        setError("");
+        setStepFeedback(result.supported ? text.emailAvailable : "");
+        return true;
+      } catch (err) {
+        setError(parseErrorMessage(err, text.failed));
+        return false;
+      } finally {
+        setValidatingStep(false);
+      }
+    }
+
+    if (activeStep.key === "password") {
+      if (!password.trim()) {
+        setError(text.passwordStepRequired);
+        return false;
+      }
+
+      if (password.length < 8) {
+        setError(text.passwordStepTooShort);
+        return false;
+      }
+    }
+
+    setError("");
+    setStepFeedback("");
+    return true;
   };
 
   const handleProfilePhotoChange = (file: File | null) => {
@@ -377,35 +565,25 @@ export default function RegisterPage() {
       }
 
       router.push("/");
-    } catch {
-      setError(text.failed);
+    } catch (err) {
+      setError(parseErrorMessage(err, text.failed));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleNextStep = () => {
-    if (activeStep.key === "username" && !username.trim()) {
-      setError(text.usernameStepRequired);
+  const handleNextStep = async () => {
+    const isStepValid = await validateCurrentStep();
+    if (!isStepValid) {
       return;
     }
 
-    if (activeStep.key === "email" && !email.trim()) {
-      setError(text.emailStepRequired);
-      return;
-    }
-
-    if (activeStep.key === "password" && !password.trim()) {
-      setError(text.passwordStepRequired);
-      return;
-    }
-
-    setError("");
     setWizardStepIndex((current) => Math.min(current + 1, wizardSteps.length - 1));
   };
 
   const handlePreviousStep = () => {
     setError("");
+    setStepFeedback("");
     setWizardStepIndex((current) => Math.max(current - 1, 0));
   };
 
@@ -417,7 +595,11 @@ export default function RegisterPage() {
             autoFocus
             placeholder={text.username}
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              setError("");
+              setStepFeedback("");
+            }}
             className="rounded-2xl border border-zinc-700 bg-zinc-950/80 p-4 text-lg text-stone-100 outline-none transition focus:border-amber-400"
           />
         );
@@ -428,7 +610,11 @@ export default function RegisterPage() {
             type="email"
             placeholder={text.email}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError("");
+              setStepFeedback("");
+            }}
             className="rounded-2xl border border-zinc-700 bg-zinc-950/80 p-4 text-lg text-stone-100 outline-none transition focus:border-amber-400"
           />
         );
@@ -470,7 +656,11 @@ export default function RegisterPage() {
             type="password"
             placeholder={text.password}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError("");
+              setStepFeedback("");
+            }}
             className="rounded-2xl border border-zinc-700 bg-zinc-950/80 p-4 text-lg text-stone-100 outline-none transition focus:border-amber-400"
           />
         );
@@ -741,6 +931,11 @@ export default function RegisterPage() {
                   {renderWizardField()}
 
                   {error ? <InlineAlert message={error} /> : null}
+                  {stepFeedback ? (
+                    <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                      {stepFeedback}
+                    </div>
+                  ) : null}
 
                   <div className="flex items-center justify-between gap-3 pt-2">
                     <button
@@ -756,7 +951,10 @@ export default function RegisterPage() {
                       {!activeStep.required && !isLastStep ? (
                         <button
                           type="button"
-                          onClick={handleNextStep}
+                          onClick={() => {
+                            void handleNextStep();
+                          }}
+                          disabled={validatingStep}
                           className="text-sm text-stone-400 transition hover:text-amber-300"
                         >
                           {text.skip}
@@ -766,10 +964,13 @@ export default function RegisterPage() {
                       {!isLastStep ? (
                         <button
                           type="button"
-                          onClick={handleNextStep}
-                          className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+                          onClick={() => {
+                            void handleNextStep();
+                          }}
+                          disabled={validatingStep}
+                          className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          {text.next}
+                          {validatingStep ? text.validating : text.next}
                         </button>
                       ) : (
                         <button
